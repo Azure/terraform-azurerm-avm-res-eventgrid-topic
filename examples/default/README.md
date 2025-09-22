@@ -20,10 +20,32 @@ provider "azurerm" {
   features {}
 }
 
+## Section to provide a random Azure region for the resource group
+# This allows us to randomize the region for the resource group.
+module "regions" {
+  source  = "Azure/avm-utl-regions/azurerm"
+  version = "~> 0.1"
+
+  geography_filter = "United States"
+}
+
+# This allows us to randomize the region for the resource group.
+resource "random_integer" "region_index" {
+  max = length(module.regions.regions) - 1
+  min = 0
+}
+## End of section to provide a random Azure region for the resource group
+
+# This ensures we have unique CAF compliant names for our resources.
+module "naming" {
+  source  = "Azure/naming/azurerm"
+  version = "~> 0.3"
+}
+
 # Resource group for the example
 resource "azurerm_resource_group" "this" {
-  location = "East US"
-  name     = "rg-eventgrid-example"
+  location = module.regions.regions[random_integer.region_index.result]
+  name     = module.naming.resource_group.name_unique
 }
 
 # Network resources required for the Private Endpoint
@@ -51,7 +73,7 @@ resource "azurerm_user_assigned_identity" "uai" {
 # Log Analytics workspace for diagnostics (example)
 resource "azurerm_log_analytics_workspace" "this" {
   location            = azurerm_resource_group.this.location
-  name                = "law-eventgrid-example"
+  name                = module.naming.log_analytics_workspace.name_unique
   resource_group_name = azurerm_resource_group.this.name
   retention_in_days   = 30
   sku                 = "PerGB2018"
@@ -62,7 +84,7 @@ module "eventgrid_topic" {
   source = "../../"
 
   location            = azurerm_resource_group.this.location
-  name                = "example-topic202519"
+  name                = module.naming.eventgrid_topic.name_unique
   resource_group_name = azurerm_resource_group.this.name
   # Example: set data residency boundary to 'WithinRegion' to keep data within the selected region.
   # Valid values: "WithinGeopair" (default) or "WithinRegion".
@@ -122,6 +144,7 @@ The following resources are used by this module:
 - [azurerm_subnet.pe](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) (resource)
 - [azurerm_user_assigned_identity.uai](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) (resource)
 - [azurerm_virtual_network.vnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network) (resource)
+- [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -145,6 +168,18 @@ The following Modules are called:
 Source: ../../
 
 Version:
+
+### <a name="module_naming"></a> [naming](#module\_naming)
+
+Source: Azure/naming/azurerm
+
+Version: ~> 0.3
+
+### <a name="module_regions"></a> [regions](#module\_regions)
+
+Source: Azure/avm-utl-regions/azurerm
+
+Version: ~> 0.1
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

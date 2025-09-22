@@ -13,10 +13,32 @@ provider "azurerm" {
   features {}
 }
 
+## Section to provide a random Azure region for the resource group
+# This allows us to randomize the region for the resource group.
+module "regions" {
+  source  = "Azure/avm-utl-regions/azurerm"
+  version = "~> 0.1"
+
+  geography_filter = "United States"
+}
+
+# This allows us to randomize the region for the resource group.
+resource "random_integer" "region_index" {
+  max = length(module.regions.regions) - 1
+  min = 0
+}
+## End of section to provide a random Azure region for the resource group
+
+# This ensures we have unique CAF compliant names for our resources.
+module "naming" {
+  source  = "Azure/naming/azurerm"
+  version = "~> 0.3"
+}
+
 # Resource group for the example
 resource "azurerm_resource_group" "this" {
-  location = "East US"
-  name     = "rg-eventgrid-example"
+  location = module.regions.regions[random_integer.region_index.result]
+  name     = module.naming.resource_group.name_unique
 }
 
 # Network resources required for the Private Endpoint
@@ -44,7 +66,7 @@ resource "azurerm_user_assigned_identity" "uai" {
 # Log Analytics workspace for diagnostics (example)
 resource "azurerm_log_analytics_workspace" "this" {
   location            = azurerm_resource_group.this.location
-  name                = "law-eventgrid-example"
+  name                = module.naming.log_analytics_workspace.name_unique
   resource_group_name = azurerm_resource_group.this.name
   retention_in_days   = 30
   sku                 = "PerGB2018"
@@ -55,7 +77,7 @@ module "eventgrid_topic" {
   source = "../../"
 
   location            = azurerm_resource_group.this.location
-  name                = "example-topic202519"
+  name                = module.naming.eventgrid_topic.name_unique
   resource_group_name = azurerm_resource_group.this.name
   # Example: set data residency boundary to 'WithinRegion' to keep data within the selected region.
   # Valid values: "WithinGeopair" (default) or "WithinRegion".
