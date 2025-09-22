@@ -9,10 +9,8 @@ variable "name" {
   description = "The name of the this resource."
 
   validation {
-    condition     = can(regex("TODO", var.name))
-    error_message = "The name must be TODO." # TODO remove the example below once complete:
-    #condition     = can(regex("^[a-z0-9]{5,50}$", var.name))
-    #error_message = "The name must be between 5 and 50 characters long and can only contain lowercase letters and numbers."
+    condition     = can(regex("^[a-zA-Z0-9\\-]{1,63}$", var.name))
+    error_message = "The name must be between 1 and 63 characters and can contain only letters, numbers and hyphens."
   }
 }
 
@@ -45,6 +43,17 @@ A map describing customer-managed keys to associate with the resource. This incl
 DESCRIPTION
 }
 
+variable "data_residency_boundary" {
+  type        = string
+  default     = null
+  description = "(Optional) Data residency boundary to set on the Event Grid Topic. Maps to the ARM property `dataResidencyBoundary`. Allowed values: 'WithinGeopair' (API default) and 'WithinRegion'. If `null`, the module will set `WithinGeopair` in the ARM payload to make the default explicit."
+
+  validation {
+    condition     = var.data_residency_boundary == null ? true : contains(["WithinGeopair", "WithinRegion"], var.data_residency_boundary)
+    error_message = "data_residency_boundary must be one of: 'WithinGeopair', 'WithinRegion' or null."
+  }
+}
+
 variable "diagnostic_settings" {
   type = map(object({
     name                                     = optional(string, null)
@@ -60,7 +69,7 @@ variable "diagnostic_settings" {
   }))
   default     = {}
   description = <<DESCRIPTION
-A map of diagnostic settings to create on the Key Vault. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+A map of diagnostic settings to create on the Event Grid Topic. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
 
 - `name` - (Optional) The name of the diagnostic setting. One will be generated if not set, however this will not be unique if you want to create multiple diagnostic setting resources.
 - `log_categories` - (Optional) A set of log categories to send to the log analytics workspace. Defaults to `[]`.
@@ -90,6 +99,13 @@ DESCRIPTION
   }
 }
 
+variable "disable_local_auth" {
+  type        = bool
+  default     = true
+  description = "When true the Event Grid Topic will have local authentication disabled (ARM property `disableLocalAuth`). The module will always set this property; default is `true` (local auth disabled)."
+  nullable    = false
+}
+
 variable "enable_telemetry" {
   type        = bool
   default     = true
@@ -99,6 +115,32 @@ For more information see <https://aka.ms/avm/telemetryinfo>.
 If it is set to false, then no telemetry will be collected.
 DESCRIPTION
   nullable    = false
+}
+
+variable "inbound_ip_rules" {
+  type = list(object({
+    ip_mask = string
+    action  = string
+  }))
+  default     = []
+  description = "A list of inbound IP rules to restrict network access to the topic. Each rule must have an `ip_mask` and an `action` (e.g. 'Allow' or 'Deny')."
+}
+
+variable "input_schema" {
+  type        = string
+  default     = "EventGridSchema"
+  description = "Optional input schema for the topic. Allowed values: 'EventGridSchema' (default), 'CloudEventSchemaV1_0', 'Custom'."
+
+  validation {
+    condition     = contains(["EventGridSchema", "CloudEventSchemaV1_0", "CustomEventSchema"], var.input_schema)
+    error_message = "input_schema must be one of: 'EventGridSchema', 'CloudEventSchemaV1_0', or 'CustomEventSchema'."
+  }
+}
+
+variable "input_schema_mapping" {
+  type        = any
+  default     = null
+  description = "Optional input schema mapping object. Use this to provide mappings when `input_schema` is 'Custom'. The structure follows the ARM schema for input mappings."
 }
 
 variable "lock" {
@@ -134,6 +176,17 @@ Controls the Managed Identity configuration on this resource. The following prop
 - `user_assigned_resource_ids` - (Optional) Specifies a list of User Assigned Managed Identity resource IDs to be assigned to this resource.
 DESCRIPTION
   nullable    = false
+}
+
+variable "minimum_tls_version_allowed" {
+  type        = string
+  default     = "1.2"
+  description = "Minimum TLS version allowed for the Event Grid Topic. This maps to the ARM property `minimumTlsVersionAllowed`."
+
+  validation {
+    condition     = contains(["1.0", "1.1", "1.2"], var.minimum_tls_version_allowed)
+    error_message = "minimum_tls_version_allowed must be one of: '1.0', '1.1', '1.2'."
+  }
 }
 
 variable "private_endpoints" {
@@ -198,6 +251,27 @@ variable "private_endpoints_manage_dns_zone_group" {
   default     = true
   description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
   nullable    = false
+}
+
+# Passthrough for resource properties that map directly to the ARM schema for Microsoft.EventGrid/topics
+variable "properties" {
+  type        = map(any)
+  default     = {}
+  description = <<DESCRIPTION
+A map of properties to set on the Event Grid Topic resource. This allows passing any ARM schema properties that are not explicitly modelled by this module. Use this to provide new or preview properties from the schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics
+DESCRIPTION
+  nullable    = false
+}
+
+variable "public_network_access" {
+  type        = string
+  default     = "Disabled"
+  description = "Controls public network access for the topic. Must be one of: 'Enabled', 'Disabled'. Defaults to 'Disabled' to reduce public exposure by default."
+
+  validation {
+    condition     = contains(["Enabled", "Disabled"], var.public_network_access)
+    error_message = "public_network_access must be one of: 'Enabled' or 'Disabled'."
+  }
 }
 
 variable "role_assignments" {

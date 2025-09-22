@@ -1,3 +1,3 @@
-# terraform-azurerm-avm-template
+# terraform-azurerm-avm-res-eventgrid-topic
 
-This is a template repo for Terraform Azure Verified Modules.
+Terraform Azure Verified Resource Module for managing an Event Grid Topic.
