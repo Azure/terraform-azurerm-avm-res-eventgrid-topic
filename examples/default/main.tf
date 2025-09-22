@@ -16,8 +16,9 @@ provider "azurerm" {
 ## Section to provide a random Azure region for the resource group
 # This allows us to randomize the region for the resource group.
 module "regions" {
-  source           = "Azure/avm-utl-regions/azurerm"
-  version          = "0.9.0"
+  source  = "Azure/avm-utl-regions/azurerm"
+  version = "0.9.0"
+
   geography_filter = "United States"
 }
 
