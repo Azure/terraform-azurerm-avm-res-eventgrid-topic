@@ -200,6 +200,7 @@ variable "private_endpoints" {
       condition                              = optional(string, null)
       condition_version                      = optional(string, null)
       delegated_managed_identity_resource_id = optional(string, null)
+      principal_type                         = optional(string, null)
     })), {})
     lock = optional(object({
       kind = string
@@ -242,24 +243,11 @@ DESCRIPTION
   nullable    = false
 }
 
-# This variable is used to determine if the private_dns_zone_group block should be included,
-# or if it is to be managed externally, e.g. using Azure Policy.
-# https://github.com/Azure/terraform-azurerm-avm-res-keyvault-vault/issues/32
-# Alternatively you can use AzAPI, which does not have this issue.
-variable "private_endpoints_manage_dns_zone_group" {
-  type        = bool
-  default     = true
-  description = "Whether to manage private DNS zone groups with this module. If set to false, you must manage private DNS zone groups externally, e.g. using Azure Policy."
-  nullable    = false
-}
-
 # Passthrough for resource properties that map directly to the ARM schema for Microsoft.EventGrid/topics
 variable "properties" {
   type        = map(any)
   default     = {}
-  description = <<DESCRIPTION
-A map of properties to set on the Event Grid Topic resource. This allows passing any ARM schema properties that are not explicitly modelled by this module. Use this to provide new or preview properties from the schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics
-DESCRIPTION
+  description = "A map of properties to set on the Event Grid Topic resource. This allows passing any ARM schema properties that are not explicitly modelled by this module. Use this to provide new or preview properties from the schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics"
   nullable    = false
 }
 

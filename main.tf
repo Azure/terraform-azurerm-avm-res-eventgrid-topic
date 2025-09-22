@@ -1,8 +1,8 @@
-// Resolve the current subscription so we can construct a resource id for the resource group
+# Resolve the current subscription so we can construct a resource id for the resource group
 data "azurerm_client_config" "current" {}
 
-// Build the resource id of the resource group from the current subscription and the provided name.
-// This avoids a data lookup that would fail when the resource group is also created in the same plan.
+# Build the resource id of the resource group from the current subscription and the provided name.
+# This avoids a data lookup that would fail when the resource group is also created in the same plan.
 locals {
   resource_group_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
 }
@@ -25,7 +25,7 @@ resource "azapi_resource" "this" {
   update_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 }
 
-// Diagnostic settings for the Topic
+# Diagnostic settings for the Topic
 resource "azurerm_monitor_diagnostic_setting" "this" {
   for_each = var.diagnostic_settings
 
@@ -55,7 +55,7 @@ resource "azurerm_monitor_diagnostic_setting" "this" {
   }
 }
 
-// required AVM resources interfaces (scoped to the created topic)
+# required AVM resources interfaces (scoped to the created topic)
 resource "azurerm_management_lock" "this" {
   count = var.lock != null ? 1 : 0
 

@@ -24,3 +24,8 @@ output "topic_tags" {
   description = "The tags assigned to the Event Grid Topic."
   value       = azapi_resource.this.tags
 }
+
+output "resource_id" {
+  description = "The Azure Resource Manager ID of the primary resource created by this module."
+  value       = azapi_resource.this.id
+}
