@@ -243,6 +243,14 @@ DESCRIPTION
   nullable    = false
 }
 
+# Whether the module should create/manage private DNS zone groups for private endpoints.
+variable "private_endpoints_manage_dns_zone_group" {
+  type        = bool
+  default     = true
+  description = "Whether the module should create/manage private DNS zone group(s) for private endpoints. If set to false, DNS zone group management is left to the caller (e.g., managed externally or via Azure Policy)."
+  nullable    = false
+}
+
 # Passthrough for resource properties that map directly to the ARM schema for Microsoft.EventGrid/topics
 variable "properties" {
   type        = map(any)
