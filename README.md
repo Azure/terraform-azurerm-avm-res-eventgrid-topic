@@ -279,6 +279,14 @@ map(object({
 
 Default: `{}`
 
+### <a name="input_private_endpoints_manage_dns_zone_group"></a> [private\_endpoints\_manage\_dns\_zone\_group](#input\_private\_endpoints\_manage\_dns\_zone\_group)
+
+Description: Whether the module should create/manage private DNS zone group(s) for private endpoints. If set to false, DNS zone group management is left to the caller (e.g., managed externally or via Azure Policy).
+
+Type: `bool`
+
+Default: `true`
+
 ### <a name="input_properties"></a> [properties](#input\_properties)
 
 Description: A map of properties to set on the Event Grid Topic resource. This allows passing any ARM schema properties that are not explicitly modelled by this module. Use this to provide new or preview properties from the schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics
