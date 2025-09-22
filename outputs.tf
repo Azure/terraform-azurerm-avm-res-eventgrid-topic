@@ -5,6 +5,11 @@ output "private_endpoints" {
   value       = var.private_endpoints_manage_dns_zone_group ? azurerm_private_endpoint.this_managed_dns_zone_groups : azurerm_private_endpoint.this_unmanaged_dns_zone_groups
 }
 
+output "resource_id" {
+  description = "The Azure Resource Manager ID of the primary resource created by this module."
+  value       = azapi_resource.this.id
+}
+
 output "topic_id" {
   description = "The Azure Resource Manager ID of the Event Grid Topic."
   value       = azapi_resource.this.id
@@ -23,9 +28,4 @@ output "topic_name" {
 output "topic_tags" {
   description = "The tags assigned to the Event Grid Topic."
   value       = azapi_resource.this.tags
-}
-
-output "resource_id" {
-  description = "The Azure Resource Manager ID of the primary resource created by this module."
-  value       = azapi_resource.this.id
 }
