@@ -96,14 +96,14 @@ module "eventgrid_topic" {
   # Diagnostics: send topic "Publish" logs and metrics to the Log Analytics workspace.
   # Note: diagnostic log categories are resource-type specific. Topics commonly support the "Publish" log category.
   diagnostic_settings = {
-    la = {
-      name = null
-      # Use valid Event Grid Topic diagnostic categories: PublishFailures and DataPlaneRequests
-      log_categories                 = toset(["PublishFailures", "DataPlaneRequests"])
-      metric_categories              = toset(["AllMetrics"])
-      log_analytics_destination_type = "Dedicated"
-      workspace_resource_id          = azurerm_log_analytics_workspace.this.id
-    }
+    # la = {
+    #   name = null
+    #   # Use valid Event Grid Topic diagnostic categories: PublishFailures and DataPlaneRequests
+    #   log_categories                 = toset(["PublishFailures", "DataPlaneRequests"])
+    #   metric_categories              = toset(["AllMetrics"])
+    #   log_analytics_destination_type = "Dedicated"
+    #   workspace_resource_id          = azurerm_log_analytics_workspace.this.id
+    # }
   }
   # Explicitly show the disable_local_auth input (module default is true)
   disable_local_auth = true
