@@ -15,6 +15,9 @@ locals {
     ]
   ]) : "${assoc.pe_key}-${assoc.asg_key}" => assoc }
   role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"
+  # Final topic properties: merge base properties with any custom properties from var.properties.
+  # The var.properties takes precedence, allowing users to override or extend the base properties.
+  topic_properties = merge(local.topic_properties_base, var.properties)
   # Topic properties merged from explicit module inputs and passthrough `var.properties`.
   # This contains the base properties derived from module input variables.
   topic_properties_base = merge(
@@ -27,9 +30,6 @@ locals {
     var.input_schema != null ? { inputSchema = var.input_schema } : {},
     var.input_schema_mapping != null ? { inputSchemaMapping = var.input_schema_mapping } : {}
   )
-  # Final topic properties: merge base properties with any custom properties from var.properties.
-  # The var.properties takes precedence, allowing users to override or extend the base properties.
-  topic_properties = merge(local.topic_properties_base, var.properties)
   # Map of user-assigned identity resource ids required by the resource (as a map keyed by resource id)
   user_assigned_id_map = length(var.managed_identities.user_assigned_resource_ids) > 0 ? { for id in var.managed_identities.user_assigned_resource_ids : id => {} } : {}
 }

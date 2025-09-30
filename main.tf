@@ -9,10 +9,18 @@ locals {
 
 # Create the Event Grid Topic using the AzAPI provider and the 2025-02-15 API version
 resource "azapi_resource" "this" {
-  type      = "Microsoft.EventGrid/topics@2025-02-15"
-  name      = var.name
   location  = var.location
+  name      = var.name
   parent_id = local.resource_group_id
+  type      = "Microsoft.EventGrid/topics@2025-02-15"
+  body = {
+    properties = local.topic_properties
+  }
+  create_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  delete_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  ignore_null_property = true
+  read_headers         = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  update_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 
   dynamic "identity" {
     for_each = local.identity_required ? [1] : []
@@ -22,16 +30,6 @@ resource "azapi_resource" "this" {
       identity_ids = length(local.user_assigned_id_map) > 0 ? keys(local.user_assigned_id_map) : null
     }
   }
-
-  body = {
-    properties = local.topic_properties
-  }
-
-  create_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  delete_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  ignore_null_property = true
-  read_headers         = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-  update_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 }
 
 # Diagnostic settings for the Topic
