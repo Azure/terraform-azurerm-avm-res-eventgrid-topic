@@ -9,15 +9,24 @@ locals {
 
 # Create the Event Grid Topic using the AzAPI provider and the 2025-02-15 API version
 resource "azapi_resource" "this" {
-  location  = var.location
-  name      = var.name
-  parent_id = local.resource_group_id
   type      = "Microsoft.EventGrid/topics@2025-02-15"
-  # Build the ARM body as an HCL object. Include identity at the top level of the ARM resource when requested.
-  body = merge(
-    { properties = merge(var.properties, local.topic_properties) },
-    local.identity_block
-  )
+  name      = var.name
+  location  = var.location
+  parent_id = local.resource_group_id
+
+  dynamic "identity" {
+    for_each = local.identity_required ? [1] : []
+
+    content {
+      type         = local.identity_type_str
+      identity_ids = length(local.user_assigned_id_map) > 0 ? keys(local.user_assigned_id_map) : null
+    }
+  }
+
+  body = {
+    properties = local.topic_properties
+  }
+
   create_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   delete_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   ignore_null_property = true
