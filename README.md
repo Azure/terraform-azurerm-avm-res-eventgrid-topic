@@ -172,9 +172,38 @@ Default: `"EventGridSchema"`
 
 ### <a name="input_input_schema_mapping"></a> [input\_schema\_mapping](#input\_input\_schema\_mapping)
 
-Description: Optional input schema mapping object. Use this to provide mappings when `input_schema` is 'Custom'. The structure follows the ARM schema for input mappings.
+Description: Optional input schema mapping object. Use this to provide mappings when `input_schema` is 'CustomEventSchema'. The structure follows the ARM schema for JSON input mappings. Set `input_schema_mapping_type` to 'Json' and provide field mappings in the `properties` object.
 
-Type: `any`
+Type:
+
+```hcl
+object({
+    input_schema_mapping_type = string
+    properties = optional(object({
+      data_version = optional(object({
+        default_value = optional(string)
+        source_field  = optional(string)
+      }))
+      event_time = optional(object({
+        source_field = optional(string)
+      }))
+      event_type = optional(object({
+        default_value = optional(string)
+        source_field  = optional(string)
+      }))
+      id = optional(object({
+        source_field = optional(string)
+      }))
+      subject = optional(object({
+        default_value = optional(string)
+        source_field  = optional(string)
+      }))
+      topic = optional(object({
+        source_field = optional(string)
+      }))
+    }))
+  })
+```
 
 Default: `null`
 
@@ -289,9 +318,9 @@ Default: `true`
 
 ### <a name="input_properties"></a> [properties](#input\_properties)
 
-Description: A map of properties to set on the Event Grid Topic resource. This allows passing any ARM schema properties that are not explicitly modelled by this module. Use this to provide new or preview properties from the schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics
+Description: A map of additional string properties to set on the Event Grid Topic resource. This allows passing ARM schema properties that are not explicitly modeled by this module. For complex object properties, use the explicitly-defined module variables. See schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics
 
-Type: `map(any)`
+Type: `map(string)`
 
 Default: `{}`
 

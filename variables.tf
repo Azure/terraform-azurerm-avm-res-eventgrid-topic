@@ -138,9 +138,39 @@ variable "input_schema" {
 }
 
 variable "input_schema_mapping" {
-  type        = any
+  type = object({
+    input_schema_mapping_type = string
+    properties = optional(object({
+      data_version = optional(object({
+        default_value = optional(string)
+        source_field  = optional(string)
+      }))
+      event_time = optional(object({
+        source_field = optional(string)
+      }))
+      event_type = optional(object({
+        default_value = optional(string)
+        source_field  = optional(string)
+      }))
+      id = optional(object({
+        source_field = optional(string)
+      }))
+      subject = optional(object({
+        default_value = optional(string)
+        source_field  = optional(string)
+      }))
+      topic = optional(object({
+        source_field = optional(string)
+      }))
+    }))
+  })
   default     = null
-  description = "Optional input schema mapping object. Use this to provide mappings when `input_schema` is 'Custom'. The structure follows the ARM schema for input mappings."
+  description = "Optional input schema mapping object. Use this to provide mappings when `input_schema` is 'CustomEventSchema'. The structure follows the ARM schema for JSON input mappings. Set `input_schema_mapping_type` to 'Json' and provide field mappings in the `properties` object."
+
+  validation {
+    condition     = var.input_schema_mapping == null ? true : var.input_schema_mapping.input_schema_mapping_type == "Json"
+    error_message = "input_schema_mapping_type must be 'Json' when input_schema_mapping is provided."
+  }
 }
 
 variable "lock" {
@@ -253,9 +283,9 @@ variable "private_endpoints_manage_dns_zone_group" {
 
 # Passthrough for resource properties that map directly to the ARM schema for Microsoft.EventGrid/topics
 variable "properties" {
-  type        = map(any)
+  type        = map(string)
   default     = {}
-  description = "A map of properties to set on the Event Grid Topic resource. This allows passing any ARM schema properties that are not explicitly modelled by this module. Use this to provide new or preview properties from the schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics"
+  description = "A map of additional string properties to set on the Event Grid Topic resource. This allows passing ARM schema properties that are not explicitly modeled by this module. For complex object properties, use the explicitly-defined module variables. See schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics"
   nullable    = false
 }
 
