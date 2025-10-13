@@ -1,12 +1,16 @@
 variable "location" {
   type        = string
-  description = "Azure region where the resource should be deployed."
+  description = <<DESCRIPTION
+Azure region where the resource should be deployed.
+DESCRIPTION
   nullable    = false
 }
 
 variable "name" {
   type        = string
-  description = "The name of the this resource."
+  description = <<DESCRIPTION
+The name of the this resource.
+DESCRIPTION
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9\\-]{1,63}$", var.name))
@@ -14,39 +18,24 @@ variable "name" {
   }
 }
 
-# This is required for most resource modules
-variable "resource_group_name" {
+variable "parent_id" {
   type        = string
-  description = "The resource group where the resources will be deployed."
-}
-
-# required AVM interfaces
-# remove only if not supported by the resource
-# tflint-ignore: terraform_unused_declarations
-variable "customer_managed_key" {
-  type = object({
-    key_vault_resource_id = string
-    key_name              = string
-    key_version           = optional(string, null)
-    user_assigned_identity = optional(object({
-      resource_id = string
-    }), null)
-  })
-  default     = null
   description = <<DESCRIPTION
-A map describing customer-managed keys to associate with the resource. This includes the following properties:
-- `key_vault_resource_id` - The resource ID of the Key Vault where the key is stored.
-- `key_name` - The name of the key.
-- `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
-- `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.
+(Optional) The ID of the resource group where the virtual network will be deployed.
 DESCRIPTION
+
+  validation {
+    condition     = can(regex("^/subscriptions/[^/]+/resourceGroups/[^/]+$", var.parent_id))
+    error_message = "parent_id must be a valid resource group ID."
+  }
 }
 
 variable "data_residency_boundary" {
   type        = string
   default     = null
-  description = "(Optional) Data residency boundary to set on the Event Grid Topic. Maps to the ARM property `dataResidencyBoundary`. Allowed values: 'WithinGeopair' (API default) and 'WithinRegion'. If `null`, the module will set `WithinGeopair` in the ARM payload to make the default explicit."
+  description = <<DESCRIPTION
+(Optional) Data residency boundary to set on the Event Grid Topic. Maps to the ARM property `dataResidencyBoundary`. Allowed values: 'WithinGeopair' (API default) and 'WithinRegion'. If `null`, the module will set `WithinGeopair` in the ARM payload to make the default explicit.
+DESCRIPTION
 
   validation {
     condition     = var.data_residency_boundary == null ? true : contains(["WithinGeopair", "WithinRegion"], var.data_residency_boundary)
@@ -102,7 +91,9 @@ DESCRIPTION
 variable "disable_local_auth" {
   type        = bool
   default     = true
-  description = "When true the Event Grid Topic will have local authentication disabled (ARM property `disableLocalAuth`). The module will always set this property; default is `true` (local auth disabled)."
+  description = <<DESCRIPTION
+When true the Event Grid Topic will have local authentication disabled (ARM property `disableLocalAuth`). The module will always set this property; default is `true` (local auth disabled).
+DESCRIPTION
   nullable    = false
 }
 
@@ -117,19 +108,157 @@ DESCRIPTION
   nullable    = false
 }
 
+variable "event_subscriptions" {
+  type = map(object({
+    name = string
+    dead_letter_destination = optional(object({
+      endpointType = string
+      properties   = optional(map(string))
+    }))
+    dead_letter_with_resource_identity = optional(object({
+      deadLetterDestination = object({
+        endpointType = string
+        properties   = optional(map(string))
+      })
+      identity = object({
+        type                 = string
+        userAssignedIdentity = optional(string)
+      })
+    }))
+    delivery_with_resource_identity = optional(object({
+      destination = object({
+        endpointType = string
+        properties   = optional(map(string))
+      })
+      identity = object({
+        type                 = string
+        userAssignedIdentity = optional(string)
+      })
+    }))
+    destination = object({
+      endpointType = string
+      properties   = optional(map(string))
+    })
+    event_delivery_schema = optional(string)
+    expiration_time_utc   = optional(string)
+    filter = optional(object({
+      advancedFilters = optional(list(object({
+        key          = string
+        operatorType = string
+        value        = optional(number)
+        values       = optional(list(string))
+      })))
+      enableAdvancedFilteringOnArrays = optional(bool)
+      includedEventTypes              = optional(list(string))
+      isSubjectCaseSensitive          = optional(bool)
+      subjectBeginsWith               = optional(string)
+      subjectEndsWith                 = optional(string)
+    }))
+    labels = optional(list(string))
+    retry_policy = optional(object({
+      eventTimeToLiveInMinutes = optional(number)
+      maxDeliveryAttempts      = optional(number)
+    }))
+  }))
+  default     = {}
+  description = <<DESCRIPTION
+A map of event subscriptions to create on the Event Grid Topic. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+
+- `name` - (Required) The name of the event subscription.
+- `destination` - (Required) The destination where events will be delivered. This is an object with:
+  - `endpointType` - (Required) The type of endpoint (e.g., "WebHook", "EventHub", "StorageQueue", "ServiceBusQueue", "AzureFunction").
+  - `properties` - (Optional) A map of string properties specific to the endpoint type. For complex nested objects, values should be JSON-encoded strings.
+- `dead_letter_destination` - (Optional) The dead letter destination of the event subscription with:
+  - `endpointType` - (Required) The type of dead letter endpoint.
+  - `properties` - (Optional) A map of string properties specific to the dead letter endpoint type.
+- `dead_letter_with_resource_identity` - (Optional) Dead letter configuration using a managed identity with:
+  - `deadLetterDestination` - (Required) Dead letter destination configuration.
+  - `identity` - (Required) Managed identity configuration with type and optional userAssignedIdentity.
+- `delivery_with_resource_identity` - (Optional) Delivery configuration using a managed identity with:
+  - `destination` - (Required) Destination configuration.
+  - `identity` - (Required) Managed identity configuration with type and optional userAssignedIdentity.
+- `event_delivery_schema` - (Optional) The event delivery schema. Possible values: "EventGridSchema", "CloudEventSchemaV1_0", "CustomInputSchema".
+- `expiration_time_utc` - (Optional) Expiration time of the event subscription in UTC format.
+- `filter` - (Optional) The filter to apply to the event subscription with:
+  - `advancedFilters` - (Optional) List of advanced filters. Each filter has:
+    - `key` - (Required) The field path in the event to filter on.
+    - `operatorType` - (Required) The operator type (e.g., "NumberGreaterThan", "StringContains", "BoolEquals").
+    - `value` - (Optional) Single value for numeric/boolean operators (number type).
+    - `values` - (Optional) List of string values for string operators.
+  - `enableAdvancedFilteringOnArrays` - (Optional) Enable advanced filtering on arrays.
+  - `includedEventTypes` - (Optional) List of event types to include.
+  - `isSubjectCaseSensitive` - (Optional) Whether subject filtering is case sensitive.
+  - `subjectBeginsWith` - (Optional) Subject prefix filter.
+  - `subjectEndsWith` - (Optional) Subject suffix filter.
+- `labels` - (Optional) A list of labels to assign to the event subscription.
+- `retry_policy` - (Optional) The retry policy for event delivery with:
+  - `eventTimeToLiveInMinutes` - (Optional) Time to live for events in minutes.
+  - `maxDeliveryAttempts` - (Optional) Maximum number of delivery attempts.
+
+Example:
+```hcl
+event_subscriptions = {
+  webhook_sub = {
+    name = "my-webhook-subscription"
+    destination = {
+      endpointType = "WebHook"
+      properties = {
+        endpointUrl                   = "https://example.com/webhook"
+        maxEventsPerBatch             = "10"
+        preferredBatchSizeInKilobytes = "64"
+      }
+    }
+    filter = {
+      subjectBeginsWith = "/myapp/"
+      includedEventTypes = ["Microsoft.Storage.BlobCreated"]
+    }
+  }
+  eventhub_sub = {
+    name = "my-eventhub-subscription"
+    destination = {
+      endpointType = "EventHub"
+      properties = {
+        resourceId = "/subscriptions/.../eventHubs/myeventhub"
+      }
+    }
+    filter = {
+      advancedFilters = [
+        {
+          key          = "data.temperature"
+          operatorType = "NumberGreaterThan"
+          value        = 50
+        }
+      ]
+    }
+  }
+}
+```
+DESCRIPTION
+  nullable    = false
+
+  validation {
+    condition     = alltrue([for k, v in var.event_subscriptions : can(v.name) && can(v.destination)])
+    error_message = "Each event subscription must have a 'name' and 'destination' property."
+  }
+}
+
 variable "inbound_ip_rules" {
   type = list(object({
     ip_mask = string
     action  = string
   }))
   default     = []
-  description = "A list of inbound IP rules to restrict network access to the topic. Each rule must have an `ip_mask` and an `action` (e.g. 'Allow' or 'Deny')."
+  description = <<DESCRIPTION
+A list of inbound IP rules to restrict network access to the topic. Each rule must have an `ip_mask` and an `action` (e.g. 'Allow' or 'Deny').
+DESCRIPTION
 }
 
 variable "input_schema" {
   type        = string
   default     = "EventGridSchema"
-  description = "Optional input schema for the topic. Allowed values: 'EventGridSchema' (default), 'CloudEventSchemaV1_0', 'Custom'."
+  description = <<DESCRIPTION
+Optional input schema for the topic. Allowed values: 'EventGridSchema' (default), 'CloudEventSchemaV1_0', 'Custom'.
+DESCRIPTION
 
   validation {
     condition     = contains(["EventGridSchema", "CloudEventSchemaV1_0", "CustomEventSchema"], var.input_schema)
@@ -165,7 +294,9 @@ variable "input_schema_mapping" {
     }))
   })
   default     = null
-  description = "Optional input schema mapping object. Use this to provide mappings when `input_schema` is 'CustomEventSchema'. The structure follows the ARM schema for JSON input mappings. Set `input_schema_mapping_type` to 'Json' and provide field mappings in the `properties` object."
+  description = <<DESCRIPTION
+Optional input schema mapping object. Use this to provide mappings when `input_schema` is 'CustomEventSchema'. The structure follows the ARM schema for JSON input mappings. Set `input_schema_mapping_type` to 'Json' and provide field mappings in the `properties` object.
+DESCRIPTION
 
   validation {
     condition     = var.input_schema_mapping == null ? true : var.input_schema_mapping.input_schema_mapping_type == "Json"
@@ -211,7 +342,9 @@ DESCRIPTION
 variable "minimum_tls_version_allowed" {
   type        = string
   default     = "1.2"
-  description = "Minimum TLS version allowed for the Event Grid Topic. This maps to the ARM property `minimumTlsVersionAllowed`."
+  description = <<DESCRIPTION
+Minimum TLS version allowed for the Event Grid Topic. This maps to the ARM property `minimumTlsVersionAllowed`.
+DESCRIPTION
 
   validation {
     condition     = contains(["1.0", "1.1", "1.2"], var.minimum_tls_version_allowed)
@@ -267,8 +400,8 @@ A map of private endpoints to create on this resource. The map key is deliberate
 - `location` - (Optional) The Azure location where the resources will be deployed. Defaults to the location of the resource group.
 - `resource_group_name` - (Optional) The resource group where the resources will be deployed. Defaults to the resource group of this resource.
 - `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-  - `name` - The name of the IP configuration.
-  - `private_ip_address` - The private IP address of the IP configuration.
+- `name` - The name of the IP configuration.
+- `private_ip_address` - The private IP address of the IP configuration.
 DESCRIPTION
   nullable    = false
 }
@@ -277,7 +410,9 @@ DESCRIPTION
 variable "private_endpoints_manage_dns_zone_group" {
   type        = bool
   default     = true
-  description = "Whether the module should create/manage private DNS zone group(s) for private endpoints. If set to false, DNS zone group management is left to the caller (e.g., managed externally or via Azure Policy)."
+  description = <<DESCRIPTION
+Whether the module should create/manage private DNS zone group(s) for private endpoints. If set to false, DNS zone group management is left to the caller (e.g., managed externally or via Azure Policy).
+DESCRIPTION
   nullable    = false
 }
 
@@ -285,14 +420,18 @@ variable "private_endpoints_manage_dns_zone_group" {
 variable "properties" {
   type        = map(string)
   default     = {}
-  description = "A map of additional string properties to set on the Event Grid Topic resource. This allows passing ARM schema properties that are not explicitly modeled by this module. For complex object properties, use the explicitly-defined module variables. See schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics"
+  description = <<DESCRIPTION
+A map of additional string properties to set on the Event Grid Topic resource. This allows passing ARM schema properties that are not explicitly modeled by this module. For complex object properties, use the explicitly-defined module variables. See schema at: https://learn.microsoft.com/en-us/azure/templates/microsoft.eventgrid/2025-02-15/topics
+DESCRIPTION
   nullable    = false
 }
 
 variable "public_network_access" {
   type        = string
   default     = "Disabled"
-  description = "Controls public network access for the topic. Must be one of: 'Enabled', 'Disabled'. Defaults to 'Disabled' to reduce public exposure by default."
+  description = <<DESCRIPTION
+Controls public network access for the topic. Must be one of: 'Enabled', 'Disabled'. Defaults to 'Disabled' to reduce public exposure by default.
+DESCRIPTION
 
   validation {
     condition     = contains(["Enabled", "Disabled"], var.public_network_access)
@@ -333,5 +472,7 @@ DESCRIPTION
 variable "tags" {
   type        = map(string)
   default     = null
-  description = "(Optional) Tags of the resource."
+  description = <<DESCRIPTION
+(Optional) Tags of the resource.
+DESCRIPTION
 }

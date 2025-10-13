@@ -23,17 +23,15 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azapi_resource.event_subscriptions](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
+- [azapi_resource.private_endpoints](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.this](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
-- [azurerm_private_endpoint.this_managed_dns_zone_groups](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
-- [azurerm_private_endpoint.this_unmanaged_dns_zone_groups](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) (resource)
-- [azurerm_private_endpoint_application_security_group_association.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint_application_security_group_association) (resource)
 - [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
 - [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
 - [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
 - [azapi_client_config.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
-- [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) (data source)
 - [modtm_module_source.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/data-sources/module_source) (data source)
 
 <!-- markdownlint-disable MD013 -->
@@ -53,39 +51,15 @@ Description: The name of the this resource.
 
 Type: `string`
 
-### <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name)
+### <a name="input_parent_id"></a> [parent\_id](#input\_parent\_id)
 
-Description: The resource group where the resources will be deployed.
+Description: (Optional) The ID of the resource group where the virtual network will be deployed.
 
 Type: `string`
 
 ## Optional Inputs
 
 The following input variables are optional (have default values):
-
-### <a name="input_customer_managed_key"></a> [customer\_managed\_key](#input\_customer\_managed\_key)
-
-Description: A map describing customer-managed keys to associate with the resource. This includes the following properties:
-- `key_vault_resource_id` - The resource ID of the Key Vault where the key is stored.
-- `key_name` - The name of the key.
-- `key_version` - (Optional) The version of the key. If not specified, the latest version is used.
-- `user_assigned_identity` - (Optional) An object representing a user-assigned identity with the following properties:
-  - `resource_id` - The resource ID of the user-assigned identity.
-
-Type:
-
-```hcl
-object({
-    key_vault_resource_id = string
-    key_name              = string
-    key_version           = optional(string, null)
-    user_assigned_identity = optional(object({
-      resource_id = string
-    }), null)
-  })
-```
-
-Default: `null`
 
 ### <a name="input_data_residency_boundary"></a> [data\_residency\_boundary](#input\_data\_residency\_boundary)
 
@@ -146,6 +120,138 @@ If it is set to false, then no telemetry will be collected.
 Type: `bool`
 
 Default: `true`
+
+### <a name="input_event_subscriptions"></a> [event\_subscriptions](#input\_event\_subscriptions)
+
+Description: A map of event subscriptions to create on the Event Grid Topic. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+
+- `name` - (Required) The name of the event subscription.
+- `destination` - (Required) The destination where events will be delivered. This is an object with:
+  - `endpointType` - (Required) The type of endpoint (e.g., "WebHook", "EventHub", "StorageQueue", "ServiceBusQueue", "AzureFunction").
+  - `properties` - (Optional) A map of string properties specific to the endpoint type. For complex nested objects, values should be JSON-encoded strings.
+- `dead_letter_destination` - (Optional) The dead letter destination of the event subscription with:
+  - `endpointType` - (Required) The type of dead letter endpoint.
+  - `properties` - (Optional) A map of string properties specific to the dead letter endpoint type.
+- `dead_letter_with_resource_identity` - (Optional) Dead letter configuration using a managed identity with:
+  - `deadLetterDestination` - (Required) Dead letter destination configuration.
+  - `identity` - (Required) Managed identity configuration with type and optional userAssignedIdentity.
+- `delivery_with_resource_identity` - (Optional) Delivery configuration using a managed identity with:
+  - `destination` - (Required) Destination configuration.
+  - `identity` - (Required) Managed identity configuration with type and optional userAssignedIdentity.
+- `event_delivery_schema` - (Optional) The event delivery schema. Possible values: "EventGridSchema", "CloudEventSchemaV1\_0", "CustomInputSchema".
+- `expiration_time_utc` - (Optional) Expiration time of the event subscription in UTC format.
+- `filter` - (Optional) The filter to apply to the event subscription with:
+  - `advancedFilters` - (Optional) List of advanced filters. Each filter has:
+    - `key` - (Required) The field path in the event to filter on.
+    - `operatorType` - (Required) The operator type (e.g., "NumberGreaterThan", "StringContains", "BoolEquals").
+    - `value` - (Optional) Single value for numeric/boolean operators (number type).
+    - `values` - (Optional) List of string values for string operators.
+  - `enableAdvancedFilteringOnArrays` - (Optional) Enable advanced filtering on arrays.
+  - `includedEventTypes` - (Optional) List of event types to include.
+  - `isSubjectCaseSensitive` - (Optional) Whether subject filtering is case sensitive.
+  - `subjectBeginsWith` - (Optional) Subject prefix filter.
+  - `subjectEndsWith` - (Optional) Subject suffix filter.
+- `labels` - (Optional) A list of labels to assign to the event subscription.
+- `retry_policy` - (Optional) The retry policy for event delivery with:
+  - `eventTimeToLiveInMinutes` - (Optional) Time to live for events in minutes.
+  - `maxDeliveryAttempts` - (Optional) Maximum number of delivery attempts.
+
+Example:
+```hcl
+event_subscriptions = {
+  webhook_sub = {
+    name = "my-webhook-subscription"
+    destination = {
+      endpointType = "WebHook"
+      properties = {
+        endpointUrl                   = "https://example.com/webhook"
+        maxEventsPerBatch             = "10"
+        preferredBatchSizeInKilobytes = "64"
+      }
+    }
+    filter = {
+      subjectBeginsWith = "/myapp/"
+      includedEventTypes = ["Microsoft.Storage.BlobCreated"]
+    }
+  }
+  eventhub_sub = {
+    name = "my-eventhub-subscription"
+    destination = {
+      endpointType = "EventHub"
+      properties = {
+        resourceId = "/subscriptions/.../eventHubs/myeventhub"
+      }
+    }
+    filter = {
+      advancedFilters = [
+        {
+          key          = "data.temperature"
+          operatorType = "NumberGreaterThan"
+          value        = 50
+        }
+      ]
+    }
+  }
+}
+```
+
+Type:
+
+```hcl
+map(object({
+    name = string
+    dead_letter_destination = optional(object({
+      endpointType = string
+      properties   = optional(map(string))
+    }))
+    dead_letter_with_resource_identity = optional(object({
+      deadLetterDestination = object({
+        endpointType = string
+        properties   = optional(map(string))
+      })
+      identity = object({
+        type                 = string
+        userAssignedIdentity = optional(string)
+      })
+    }))
+    delivery_with_resource_identity = optional(object({
+      destination = object({
+        endpointType = string
+        properties   = optional(map(string))
+      })
+      identity = object({
+        type                 = string
+        userAssignedIdentity = optional(string)
+      })
+    }))
+    destination = object({
+      endpointType = string
+      properties   = optional(map(string))
+    })
+    event_delivery_schema = optional(string)
+    expiration_time_utc   = optional(string)
+    filter = optional(object({
+      advancedFilters = optional(list(object({
+        key          = string
+        operatorType = string
+        value        = optional(number)
+        values       = optional(list(string))
+      })))
+      enableAdvancedFilteringOnArrays = optional(bool)
+      includedEventTypes              = optional(list(string))
+      isSubjectCaseSensitive          = optional(bool)
+      subjectBeginsWith               = optional(string)
+      subjectEndsWith                 = optional(string)
+    }))
+    labels = optional(list(string))
+    retry_policy = optional(object({
+      eventTimeToLiveInMinutes = optional(number)
+      maxDeliveryAttempts      = optional(number)
+    }))
+  }))
+```
+
+Default: `{}`
 
 ### <a name="input_inbound_ip_rules"></a> [inbound\_ip\_rules](#input\_inbound\_ip\_rules)
 
@@ -268,8 +374,8 @@ Description: A map of private endpoints to create on this resource. The map key 
 - `location` - (Optional) The Azure location where the resources will be deployed. Defaults to the location of the resource group.
 - `resource_group_name` - (Optional) The resource group where the resources will be deployed. Defaults to the resource group of this resource.
 - `ip_configurations` - (Optional) A map of IP configurations to create on the private endpoint. If not specified the platform will create one. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
-  - `name` - The name of the IP configuration.
-  - `private_ip_address` - The private IP address of the IP configuration.
+- `name` - The name of the IP configuration.
+- `private_ip_address` - The private IP address of the IP configuration.
 
 Type:
 
@@ -376,9 +482,17 @@ Default: `null`
 
 The following outputs are exported:
 
-### <a name="output_private_endpoints"></a> [private\_endpoints](#output\_private\_endpoints)
+### <a name="output_event_subscription_ids"></a> [event\_subscription\_ids](#output\_event\_subscription\_ids)
 
-Description:   A map of the private endpoints created.
+Description: A map of event subscription keys to their Azure Resource Manager IDs.
+
+### <a name="output_event_subscription_names"></a> [event\_subscription\_names](#output\_event\_subscription\_names)
+
+Description: A map of event subscription keys to their names.
+
+### <a name="output_name"></a> [name](#output\_name)
+
+Description: The name of the resource.
 
 ### <a name="output_resource_id"></a> [resource\_id](#output\_resource\_id)
 
@@ -402,7 +516,13 @@ Description: The tags assigned to the Event Grid Topic.
 
 ## Modules
 
-No modules.
+The following Modules are called:
+
+### <a name="module_avm_interfaces"></a> [avm\_interfaces](#module\_avm\_interfaces)
+
+Source: Azure/avm-utl-interfaces/azure
+
+Version: 0.5.0
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection

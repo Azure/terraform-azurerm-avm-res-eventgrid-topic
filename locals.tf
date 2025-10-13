@@ -2,18 +2,7 @@ locals {
   # Whether any identity needs to be configured
   identity_required = var.managed_identities.system_assigned || length(local.user_assigned_id_map) > 0
   # Compute the identity type string for ARM: SystemAssigned, UserAssigned, or both
-  identity_type_str = var.managed_identities.system_assigned && length(local.user_assigned_id_map) > 0 ? "SystemAssigned, UserAssigned" : (var.managed_identities.system_assigned ? "SystemAssigned" : "UserAssigned")
-  # Private endpoint application security group associations.
-  # We merge the nested maps from private endpoints and application security group associations into a single map.
-  private_endpoint_application_security_group_associations = { for assoc in flatten([
-    for pe_k, pe_v in var.private_endpoints : [
-      for asg_k, asg_v in pe_v.application_security_group_associations : {
-        asg_key         = asg_k
-        pe_key          = pe_k
-        asg_resource_id = asg_v
-      }
-    ]
-  ]) : "${assoc.pe_key}-${assoc.asg_key}" => assoc }
+  identity_type_str                  = var.managed_identities.system_assigned && length(local.user_assigned_id_map) > 0 ? "SystemAssigned, UserAssigned" : (var.managed_identities.system_assigned ? "SystemAssigned" : "UserAssigned")
   role_definition_resource_substring = "/providers/Microsoft.Authorization/roleDefinitions"
   # Final topic properties: merge base properties with any custom properties from var.properties.
   # The var.properties takes precedence, allowing users to override or extend the base properties.

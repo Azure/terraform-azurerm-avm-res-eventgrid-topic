@@ -1,17 +1,8 @@
-# Resolve the current subscription so we can construct a resource id for the resource group
-data "azurerm_client_config" "current" {}
-
-# Build the resource id of the resource group from the current subscription and the provided name.
-# This avoids a data lookup that would fail when the resource group is also created in the same plan.
-locals {
-  resource_group_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}"
-}
-
 # Create the Event Grid Topic using the AzAPI provider and the 2025-02-15 API version
 resource "azapi_resource" "this" {
   location  = var.location
   name      = var.name
-  parent_id = local.resource_group_id
+  parent_id = var.parent_id
   type      = "Microsoft.EventGrid/topics@2025-02-15"
   body = {
     properties = local.topic_properties
@@ -20,6 +11,7 @@ resource "azapi_resource" "this" {
   delete_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   ignore_null_property = true
   read_headers         = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  tags                 = var.tags
   update_headers       = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
 
   dynamic "identity" {
