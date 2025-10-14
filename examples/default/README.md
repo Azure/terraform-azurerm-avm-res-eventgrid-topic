@@ -157,7 +157,6 @@ module "eventgrid_topic" {
       name                            = "pe-${module.naming.eventgrid_topic.name_unique}"
       subnet_resource_id              = azurerm_subnet.pe.id
       private_service_connection_name = "psc-eventgrid-topic"
-      //private_dns_zone_resource_ids   = [azurerm_private_dns_zone.eventgrid.id]
     }
   }
   # Let the module manage the private DNS zone group in this example
