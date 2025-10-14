@@ -5,7 +5,7 @@ module "avm_interfaces" {
   enable_telemetry                        = var.enable_telemetry
   lock                                    = var.lock
   private_endpoints                       = local.private_endpoints
-  private_endpoints_manage_dns_zone_group = true
+  private_endpoints_manage_dns_zone_group = var.private_endpoints_manage_dns_zone_group
   private_endpoints_scope                 = azapi_resource.this.id
   role_assignments                        = var.role_assignments
 }
