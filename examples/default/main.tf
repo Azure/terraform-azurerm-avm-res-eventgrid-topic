@@ -80,6 +80,22 @@ resource "azurerm_log_analytics_workspace" "this" {
   sku                 = "PerGB2018"
 }
 
+# Storage Account and Queue for event subscription destination
+resource "azurerm_storage_account" "eventgrid" {
+  account_replication_type = "LRS"
+  account_tier             = "Standard"
+  location                 = azurerm_resource_group.this.location
+  name                     = module.naming.storage_account.name_unique
+  resource_group_name      = azurerm_resource_group.this.name
+  # Required for Event Grid to access the queue
+  shared_access_key_enabled = true
+}
+
+resource "azurerm_storage_queue" "eventgrid" {
+  name                 = "eventgrid-events"
+  storage_account_name = azurerm_storage_account.eventgrid.name
+}
+
 # Module call demonstrating Private Endpoints, Managed Identities, and Diagnostics
 module "eventgrid_topic" {
   source = "../../"
@@ -104,34 +120,33 @@ module "eventgrid_topic" {
   # Explicitly show the disable_local_auth input (module default is true)
   disable_local_auth = true
   enable_telemetry   = true
-  # Event subscriptions - Webhook endpoints for testing
-  #
-  # IMPORTANT: Before deploying, get your webhook URL from one of these services:
-  #
-  # 1. webhook.site (Recommended for testing)
-  #    - Visit: https://webhook.site
-  #    - Copy your unique URL (e.g., https://webhook.site/#!/12345678-1234-1234-1234-123456789abc)
-  #    - Use the webhook URL: https://webhook.site/12345678-1234-1234-1234-123456789abc
-  #    - Copy the value `validationUrl` from the initial validation event and send a GET request to it to complete validation.
+  # Event subscriptions
+  # This example demonstrates storage queue event subscriptions
+  # 1. Storage Queue destination (no validation required)
+  #    - Events are delivered directly to an Azure Storage Queue
+  #    - Easier for testing - no validation handshake needed
+  #    - Set queue message TTL with queueMessageTimeToLiveInSeconds
   event_subscriptions = {
-    es_webhook = {
-      name = "es-webhook-${module.naming.eventgrid_topic.name_unique}"
+    # Storage Queue event subscription example
+    # No validation required - events delivered directly to queue
+    es_storagequeue = {
+      name = "es-storagequeue-${module.naming.eventgrid_topic.name_unique}"
       destination = {
-        endpointType = "WebHook"
+        endpointType = "StorageQueue"
         properties = {
-          endpointUrl = "https://webhook.site/a11a1f89-1930-44fb-a8c4-d86143235e07"
+          # Resource ID format: /subscriptions/{subId}/resourceGroups/{rgName}/providers/Microsoft.Storage/storageAccounts/{accountName}/queueservices/default/queues/{queueName}
+          resourceId = azurerm_storage_queue.eventgrid.id
+          # Queue message TTL in seconds (5 minutes = 300 seconds)
+          queueMessageTimeToLiveInSeconds = 300
         }
       }
       filter = {
         isSubjectCaseSensitive = false
-        subjectBeginsWith      = "ExamplePrefix"
-        subjectEndsWith        = "ExampleSuffix"
-        # Set includedEventTypes to null to receive all event types (or omit entirely)
-        # To filter specific event types, use: ["Microsoft.Storage.BlobCreated", "Microsoft.Storage.BlobDeleted"]
+        # Filter for specific event types if needed
         includedEventTypes = null
       }
       retry_policy = {
-        maxDeliveryAttempts      = 5
+        maxDeliveryAttempts      = 30
         eventTimeToLiveInMinutes = 1440
       }
     }
