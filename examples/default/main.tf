@@ -98,7 +98,6 @@ module "eventgrid_topic" {
       # Use valid Event Grid Topic diagnostic categories: PublishFailures and DataPlaneRequests
       log_categories                 = toset(["PublishFailures", "DataPlaneRequests"])
       metric_categories              = toset(["AllMetrics"])
-      log_analytics_destination_type = "Dedicated"
       workspace_resource_id          = azurerm_log_analytics_workspace.this.id
     }
   }
