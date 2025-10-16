@@ -82,7 +82,7 @@ resource "azurerm_log_analytics_workspace" "this" {
 
 # Storage Account and Queue for event subscription destination
 resource "azurerm_storage_account" "eventgrid" {
-  account_replication_type = "LRS"
+  account_replication_type = "ZRS"
   account_tier             = "Standard"
   location                 = azurerm_resource_group.this.location
   name                     = module.naming.storage_account.name_unique
