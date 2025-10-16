@@ -80,20 +80,32 @@ resource "azurerm_log_analytics_workspace" "this" {
   sku                 = "PerGB2018"
 }
 
-# Storage Account and Queue for event subscription destination
-resource "azurerm_storage_account" "eventgrid" {
-  account_replication_type = "ZRS"
-  account_tier             = "Standard"
-  location                 = azurerm_resource_group.this.location
-  name                     = module.naming.storage_account.name_unique
-  resource_group_name      = azurerm_resource_group.this.name
-  # Required for Event Grid to access the queue
-  shared_access_key_enabled = true
+# Storage Account and Queue for event subscription destination (using AzAPI provider)
+resource "azapi_resource" "storage_account" {
+  location  = azurerm_resource_group.this.location
+  name      = module.naming.storage_account.name_unique
+  parent_id = azurerm_resource_group.this.id
+  type      = "Microsoft.Storage/storageAccounts@2025-01-01"
+  body = {
+    sku = {
+      name = "Standard_ZRS"
+    }
+    kind = "StorageV2"
+    properties = {
+      # Required for Event Grid to access the queue
+      allowSharedKeyAccess = true
+    }
+  }
 }
 
-resource "azurerm_storage_queue" "eventgrid" {
-  name                 = "eventgrid-events"
-  storage_account_name = azurerm_storage_account.eventgrid.name
+# Queue Service is automatically created, we just need to create the queue
+resource "azapi_resource" "storage_queue" {
+  name      = "eventgrid-events"
+  parent_id = "${azapi_resource.storage_account.id}/queueServices/default"
+  type      = "Microsoft.Storage/storageAccounts/queueServices/queues@2025-01-01"
+  body = {
+    properties = {}
+  }
 }
 
 # Module call demonstrating Private Endpoints, Managed Identities, and Diagnostics
@@ -135,7 +147,7 @@ module "eventgrid_topic" {
         endpointType = "StorageQueue"
         properties = {
           # Resource ID format: /subscriptions/{subId}/resourceGroups/{rgName}/providers/Microsoft.Storage/storageAccounts/{accountName}/queueservices/default/queues/{queueName}
-          resourceId = azurerm_storage_queue.eventgrid.id
+          resourceId = azapi_resource.storage_queue.output.id
           # Queue message TTL in seconds (5 minutes = 300 seconds)
           queueMessageTimeToLiveInSeconds = 300
         }

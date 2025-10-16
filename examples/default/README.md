@@ -87,20 +87,32 @@ resource "azurerm_log_analytics_workspace" "this" {
   sku                 = "PerGB2018"
 }
 
-# Storage Account and Queue for event subscription destination
-resource "azurerm_storage_account" "eventgrid" {
-  account_replication_type = "ZRS"
-  account_tier             = "Standard"
-  location                 = azurerm_resource_group.this.location
-  name                     = module.naming.storage_account.name_unique
-  resource_group_name      = azurerm_resource_group.this.name
-  # Required for Event Grid to access the queue
-  shared_access_key_enabled = true
+# Storage Account and Queue for event subscription destination (using AzAPI provider)
+resource "azapi_resource" "storage_account" {
+  location  = azurerm_resource_group.this.location
+  name      = module.naming.storage_account.name_unique
+  parent_id = azurerm_resource_group.this.id
+  type      = "Microsoft.Storage/storageAccounts@2025-01-01"
+  body = {
+    sku = {
+      name = "Standard_ZRS"
+    }
+    kind = "StorageV2"
+    properties = {
+      # Required for Event Grid to access the queue
+      allowSharedKeyAccess = true
+    }
+  }
 }
 
-resource "azurerm_storage_queue" "eventgrid" {
-  name                 = "eventgrid-events"
-  storage_account_name = azurerm_storage_account.eventgrid.name
+# Queue Service is automatically created, we just need to create the queue
+resource "azapi_resource" "storage_queue" {
+  name      = "eventgrid-events"
+  parent_id = "${azapi_resource.storage_account.id}/queueServices/default"
+  type      = "Microsoft.Storage/storageAccounts/queueServices/queues@2025-01-01"
+  body = {
+    properties = {}
+  }
 }
 
 # Module call demonstrating Private Endpoints, Managed Identities, and Diagnostics
@@ -142,7 +154,7 @@ module "eventgrid_topic" {
         endpointType = "StorageQueue"
         properties = {
           # Resource ID format: /subscriptions/{subId}/resourceGroups/{rgName}/providers/Microsoft.Storage/storageAccounts/{accountName}/queueservices/default/queues/{queueName}
-          resourceId = azurerm_storage_queue.eventgrid.id
+          resourceId = azapi_resource.storage_queue.output.id
           # Queue message TTL in seconds (5 minutes = 300 seconds)
           queueMessageTimeToLiveInSeconds = 300
         }
@@ -196,10 +208,10 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azapi_resource.storage_account](https://registry.terraform.io/providers/hashicorp/azapi/latest/docs/resources/resource) (resource)
+- [azapi_resource.storage_queue](https://registry.terraform.io/providers/hashicorp/azapi/latest/docs/resources/resource) (resource)
 - [azurerm_log_analytics_workspace.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) (resource)
 - [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
-- [azurerm_storage_account.eventgrid](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) (resource)
-- [azurerm_storage_queue.eventgrid](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_queue) (resource)
 - [azurerm_subnet.pe](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) (resource)
 - [azurerm_user_assigned_identity.uai](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) (resource)
 - [azurerm_virtual_network.vnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network) (resource)
