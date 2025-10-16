@@ -103,10 +103,9 @@ module "eventgrid_topic" {
     la = {
       name = "diagevgns-${module.naming.eventgrid_topic.name_unique}"
       # Use valid Event Grid Topic diagnostic categories: PublishFailures and DataPlaneRequests
-      log_categories                 = toset(["PublishFailures", "DataPlaneRequests"])
-      metric_categories              = toset(["AllMetrics"])
-      log_analytics_destination_type = "Dedicated"
-      workspace_resource_id          = azurerm_log_analytics_workspace.this.id
+      log_categories        = toset(["PublishFailures", "DataPlaneRequests"])
+      metric_categories     = toset(["AllMetrics"])
+      workspace_resource_id = azurerm_log_analytics_workspace.this.id
     }
   }
   # Explicitly show the disable_local_auth input (module default is true)
