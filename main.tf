@@ -51,6 +51,14 @@ resource "azurerm_monitor_diagnostic_setting" "this" {
       category = enabled_metric.value
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      # Azure API doesn't return log_analytics_destination_type in response
+      # causing perpetual drift - ignore changes to prevent this
+      log_analytics_destination_type
+    ]
+  }
 }
 
 # required AVM resources interfaces (scoped to the created topic)

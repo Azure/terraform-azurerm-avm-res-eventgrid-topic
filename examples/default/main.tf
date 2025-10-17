@@ -100,6 +100,13 @@ resource "azapi_resource" "storage_account" {
       allowSharedKeyAccess = true
     }
   }
+
+  # Ignore changes to allowSharedKeyAccess if Azure Policy resets it
+  lifecycle {
+    ignore_changes = [
+      body.properties.allowSharedKeyAccess
+    ]
+  }
 }
 
 # Queue Service is automatically created, we just need to create the queue
@@ -128,9 +135,10 @@ module "eventgrid_topic" {
     la = {
       name = "diagevgns-${module.naming.eventgrid_topic.name_unique}"
       # Use valid Event Grid Topic diagnostic categories: PublishFailures and DataPlaneRequests
-      log_categories        = toset(["PublishFailures", "DataPlaneRequests"])
-      metric_categories     = toset(["AllMetrics"])
-      workspace_resource_id = azurerm_log_analytics_workspace.this.id
+      log_categories                 = toset(["PublishFailures", "DataPlaneRequests"])
+      metric_categories              = toset(["AllMetrics"])
+      log_analytics_destination_type = "Dedicated"
+      workspace_resource_id          = azurerm_log_analytics_workspace.this.id
     }
   }
   # Explicitly show the disable_local_auth input (module default is true)
@@ -155,6 +163,7 @@ module "eventgrid_topic" {
           # queueName must be specified separately
           queueName = "eventgrid-events"
           # Queue message TTL in seconds (5 minutes = 300 seconds)
+          # Note: Azure API returns this as a string, so we must provide it as a string
           queueMessageTimeToLiveInSeconds = "300"
         }
       }
