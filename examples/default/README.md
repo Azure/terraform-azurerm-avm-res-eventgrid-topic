@@ -157,8 +157,10 @@ module "eventgrid_topic" {
       destination = {
         endpointType = "StorageQueue"
         properties = {
-          # Resource ID format: /subscriptions/{subId}/resourceGroups/{rgName}/providers/Microsoft.Storage/storageAccounts/{accountName}/queueservices/default/queues/{queueName}
-          resourceId = azapi_resource.storage_queue.output.id
+          # resourceId must be the storage account ID (not the queue ID)
+          resourceId = azapi_resource.storage_account.id
+          # queueName must be specified separately
+          queueName = "eventgrid-events"
           # Queue message TTL in seconds (5 minutes = 300 seconds)
           queueMessageTimeToLiveInSeconds = 300
         }
