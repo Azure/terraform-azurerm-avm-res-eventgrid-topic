@@ -162,7 +162,7 @@ module "eventgrid_topic" {
           # queueName must be specified separately
           queueName = "eventgrid-events"
           # Queue message TTL in seconds (5 minutes = 300 seconds)
-          queueMessageTimeToLiveInSeconds = 300
+          queueMessageTimeToLiveInSeconds = "300"
         }
       }
       filter = {
