@@ -4,7 +4,7 @@ resource "azapi_resource" "event_subscriptions" {
   name      = each.value.name
   parent_id = azapi_resource.this.id
   type      = "Microsoft.EventGrid/topics/eventSubscriptions@2025-02-15"
-  body = jsondecode(jsonencode({
+  body = {
     properties = merge(
       {
         destination = each.value.destination
@@ -34,21 +34,13 @@ resource "azapi_resource" "event_subscriptions" {
         retryPolicy = each.value.retry_policy
       } : {}
     )
-  }))
+  }
   create_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   delete_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   ignore_casing             = true
   ignore_missing_property   = true
-  ignore_null_property      = true
   read_headers              = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
+  response_export_values    = []
   schema_validation_enabled = false
   update_headers            = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
-
-  lifecycle {
-    ignore_changes = [
-      # Ignore type conversion differences in destination properties
-      # Azure API may return numeric values as strings or vice versa
-      body.properties.destination.properties
-    ]
-  }
 }
