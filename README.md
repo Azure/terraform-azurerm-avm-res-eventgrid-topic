@@ -524,6 +524,209 @@ Source: Azure/avm-utl-interfaces/azure
 
 Version: 0.5.0
 
+## Known Idempotency Issues and Solutions
+
+This module implements several workarounds for known idempotency issues with the Azure Event Grid API to prevent perpetual drift in Terraform plans.
+
+### Event Subscription Destination Properties
+
+**Issue**: Azure Event Grid API may return numeric properties as strings or vice versa in event subscription destinations (e.g., `maxEventsPerBatch`, `preferredBatchSizeInKilobytes`, `queueMessageTimeToLiveInSeconds`). This causes Terraform to detect spurious changes on subsequent applies even when no actual changes were made.
+
+**Solution**: The module includes a lifecycle block in `main.event_subscriptions.tf` that ignores changes to `body.properties.destination.properties`:
+
+```hcl
+lifecycle {
+  ignore_changes = [
+    body.properties.destination.properties
+  ]
+}
+```
+
+**Best Practice**: Always specify numeric values as strings in your event subscription configurations to match Azure API responses:
+
+```hcl
+event_subscriptions = {
+  example = {
+    destination = {
+      properties = {
+        maxEventsPerBatch             = "10"   # String, not number
+        preferredBatchSizeInKilobytes = "64"   # String, not number
+        queueMessageTimeToLiveInSeconds = "300" # String, not number
+      }
+    }
+  }
+}
+```
+
+### Diagnostic Settings Log Analytics Destination Type
+
+**Issue**: The Azure Monitor Diagnostic Settings API does not return the `log_analytics_destination_type` property in GET responses, causing perpetual drift if this value is set.
+
+**Solution**: The module includes a lifecycle block in `main.tf` that ignores changes to `log_analytics_destination_type`:
+
+```hcl
+lifecycle {
+  ignore_changes = [
+    log_analytics_destination_type
+  ]
+}
+```
+
+**Impact**: This means the module cannot detect if this property is changed outside of Terraform. This is an Azure API limitation.
+
+## Day 2 Operations Guide
+
+This section describes common Day 2 operations scenarios and how to perform them safely with this module.
+
+### Adding Event Subscriptions
+
+To add a new event subscription to an existing topic, simply add it to the `event_subscriptions` map:
+
+```hcl
+event_subscriptions = {
+  existing_subscription = { ... }
+  new_subscription = {
+    name = "new-subscription"
+    destination = { ... }
+  }
+}
+```
+
+Run `terraform plan` to verify only the new subscription will be created. The existing topic and subscriptions should show no changes.
+
+### Removing Event Subscriptions
+
+To remove an event subscription, remove it from the `event_subscriptions` map. The module will destroy only that subscription without affecting the topic or other subscriptions.
+
+### Updating Event Subscription Filters
+
+Event subscription filters can be updated in place. Modify the `filter` block for the subscription:
+
+```hcl
+event_subscriptions = {
+  example = {
+    filter = {
+      subjectBeginsWith = "/new/prefix/"  # Changed from previous value
+      includedEventTypes = ["Microsoft.Storage.BlobCreated"]
+    }
+  }
+}
+```
+
+**Note**: Due to the lifecycle block ignoring destination property changes, modifications to destination properties (like `maxEventsPerBatch`) require recreation of the event subscription. Remove the subscription, apply, then add it back with new values.
+
+### Adding/Removing Private Endpoints
+
+Private endpoints can be added or removed without affecting the Event Grid Topic itself:
+
+```hcl
+private_endpoints = {
+  existing_pe = { ... }
+  new_pe = {
+    subnet_resource_id = "/subscriptions/.../subnets/new-subnet"
+  }
+}
+```
+
+### Modifying Managed Identities
+
+**System-Assigned Identity**: Can be enabled/disabled. Disabling will remove the identity.
+
+```hcl
+managed_identities = {
+  system_assigned = true  # Changed from false
+}
+```
+
+**User-Assigned Identity**: Can add or remove user-assigned identities. The topic will be updated in place:
+
+```hcl
+managed_identities = {
+  user_assigned_resource_ids = [
+    "/subscriptions/.../userAssignedIdentities/identity1",
+    "/subscriptions/.../userAssignedIdentities/identity2"  # Newly added
+  ]
+}
+```
+
+### Changing Network Access Configuration
+
+**Public Network Access**: Can be toggled between "Enabled" and "Disabled" without recreation:
+
+```hcl
+public_network_access = "Enabled"  # Changed from "Disabled"
+```
+
+**Inbound IP Rules**: Can be added, removed, or modified without recreation:
+
+```hcl
+inbound_ip_rules = [
+  { ip_mask = "10.0.0.0/24", action = "Allow" },
+  { ip_mask = "192.168.1.0/24", action = "Allow" }  # Newly added
+]
+```
+
+### Updating Diagnostic Settings
+
+Diagnostic settings can be added, removed, or modified. Each diagnostic setting is independent:
+
+```hcl
+diagnostic_settings = {
+  existing_diag = { ... }
+  new_diag = {
+    workspace_resource_id = "/subscriptions/.../workspaces/new-workspace"
+    log_categories = ["PublishFailures", "DataPlaneRequests"]
+  }
+}
+```
+
+### Immutable Properties (Require Replacement)
+
+The following properties cannot be changed after creation and will force topic replacement:
+
+- `name` - The topic name
+- `location` - The Azure region
+- `parent_id` - The resource group
+- `input_schema` - The input schema type (see next section)
+
+### Input Schema Considerations
+
+**Important**: The `input_schema` property has special behavior in Azure Event Grid:
+
+1. If not specified in the initial creation, Azure sets it to `"EventGridSchema"` (the default)
+2. Once set, it cannot be changed without recreating the topic
+3. Azure API returns the set value even if not specified in requests
+
+**Best Practice**: Always explicitly set `input_schema` in your configuration to match what was created:
+
+```hcl
+input_schema = "EventGridSchema"  # Always specify explicitly
+```
+
+If you need to change the input schema, you must:
+1. Remove the topic (`terraform destroy -target=module.eventgrid_topic`)
+2. Update the `input_schema` value
+3. Recreate the topic (`terraform apply`)
+
+### Testing Day 2 Operations
+
+Before performing Day 2 operations in production:
+
+1. Always run `terraform plan` and carefully review the changes
+2. Test in a non-production environment first
+3. Be aware of the immutable properties that force replacement
+4. For event subscriptions with webhooks, ensure the endpoint is ready before creating the subscription
+5. When modifying filters, verify they match your event patterns to avoid missing events
+
+### Validating Idempotency
+
+To verify idempotency after making changes:
+
+1. Run `terraform apply` to apply your changes
+2. Run `terraform plan` again immediately without any changes
+3. The plan should show "No changes. Your infrastructure matches the configuration."
+4. If changes are shown, review them against the known idempotency issues above
+
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection
 
