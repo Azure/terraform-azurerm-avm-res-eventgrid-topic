@@ -111,124 +111,343 @@ DESCRIPTION
 variable "event_subscriptions" {
   type = map(object({
     name = string
-    dead_letter_destination = optional(object({
-      endpointType = string
-      properties   = optional(map(string))
+
+    # Destination configuration - exactly one destination type should be specified
+    destination = optional(object({
+      # Azure Function destination
+      azure_function = optional(object({
+        resource_id                       = string
+        max_events_per_batch              = optional(number)
+        preferred_batch_size_in_kilobytes = optional(number)
+        delivery_attribute_mappings = optional(list(object({
+          name = string
+          type = string # "Static" or "Dynamic"
+          # For Static type
+          value     = optional(string)
+          is_secret = optional(bool)
+          # For Dynamic type
+          source_field = optional(string)
+        })))
+      }))
+
+      # Event Hub destination
+      event_hub = optional(object({
+        resource_id = string
+        delivery_attribute_mappings = optional(list(object({
+          name = string
+          type = string # "Static" or "Dynamic"
+          # For Static type
+          value     = optional(string)
+          is_secret = optional(bool)
+          # For Dynamic type
+          source_field = optional(string)
+        })))
+      }))
+
+      # Hybrid Connection destination
+      hybrid_connection = optional(object({
+        resource_id = string
+        delivery_attribute_mappings = optional(list(object({
+          name = string
+          type = string # "Static" or "Dynamic"
+          # For Static type
+          value     = optional(string)
+          is_secret = optional(bool)
+          # For Dynamic type
+          source_field = optional(string)
+        })))
+      }))
+
+      # Monitor Alert destination
+      monitor_alert = optional(object({
+        severity      = string # "Sev0", "Sev1", "Sev2", "Sev3", "Sev4"
+        action_groups = optional(list(string))
+        description   = optional(string)
+      }))
+
+      # Namespace Topic destination
+      namespace_topic = optional(object({
+        resource_id = string
+      }))
+
+      # Service Bus Queue destination
+      service_bus_queue = optional(object({
+        resource_id = string
+        delivery_attribute_mappings = optional(list(object({
+          name = string
+          type = string # "Static" or "Dynamic"
+          # For Static type
+          value     = optional(string)
+          is_secret = optional(bool)
+          # For Dynamic type
+          source_field = optional(string)
+        })))
+      }))
+
+      # Service Bus Topic destination
+      service_bus_topic = optional(object({
+        resource_id = string
+        delivery_attribute_mappings = optional(list(object({
+          name = string
+          type = string # "Static" or "Dynamic"
+          # For Static type
+          value     = optional(string)
+          is_secret = optional(bool)
+          # For Dynamic type
+          source_field = optional(string)
+        })))
+      }))
+
+      # Storage Queue destination
+      storage_queue = optional(object({
+        resource_id                           = string
+        queue_name                            = string
+        queue_message_time_to_live_in_seconds = optional(number)
+      }))
+
+      # WebHook destination
+      webhook = optional(object({
+        endpoint_url                         = string
+        max_events_per_batch                 = optional(number)
+        preferred_batch_size_in_kilobytes    = optional(number)
+        azure_active_directory_tenant_id     = optional(string)
+        azure_active_directory_app_id_or_uri = optional(string)
+        minimum_tls_version_allowed          = optional(string) # "1.0", "1.1", "1.2"
+        delivery_attribute_mappings = optional(list(object({
+          name = string
+          type = string # "Static" or "Dynamic"
+          # For Static type
+          value     = optional(string)
+          is_secret = optional(bool)
+          # For Dynamic type
+          source_field = optional(string)
+        })))
+      }))
     }))
-    dead_letter_with_resource_identity = optional(object({
-      deadLetterDestination = object({
-        endpointType = string
-        properties   = optional(map(string))
-      })
-      identity = object({
-        type                 = string
-        userAssignedIdentity = optional(string)
-      })
-    }))
+
+    # Delivery with managed identity - use this for RBAC-based delivery
     delivery_with_resource_identity = optional(object({
-      destination = object({
-        endpointType = string
-        properties   = optional(map(string))
-      })
       identity = object({
-        type                 = string
-        userAssignedIdentity = optional(string)
+        type                   = string # "SystemAssigned" or "UserAssigned"
+        user_assigned_identity = optional(string)
+      })
+      destination = object({
+        # Same destination types as above
+        azure_function = optional(object({
+          resource_id                       = string
+          max_events_per_batch              = optional(number)
+          preferred_batch_size_in_kilobytes = optional(number)
+          delivery_attribute_mappings = optional(list(object({
+            name         = string
+            type         = string
+            value        = optional(string)
+            is_secret    = optional(bool)
+            source_field = optional(string)
+          })))
+        }))
+        event_hub = optional(object({
+          resource_id = string
+          delivery_attribute_mappings = optional(list(object({
+            name         = string
+            type         = string
+            value        = optional(string)
+            is_secret    = optional(bool)
+            source_field = optional(string)
+          })))
+        }))
+        hybrid_connection = optional(object({
+          resource_id = string
+          delivery_attribute_mappings = optional(list(object({
+            name         = string
+            type         = string
+            value        = optional(string)
+            is_secret    = optional(bool)
+            source_field = optional(string)
+          })))
+        }))
+        monitor_alert = optional(object({
+          severity      = string
+          action_groups = optional(list(string))
+          description   = optional(string)
+        }))
+        namespace_topic = optional(object({
+          resource_id = string
+        }))
+        service_bus_queue = optional(object({
+          resource_id = string
+          delivery_attribute_mappings = optional(list(object({
+            name         = string
+            type         = string
+            value        = optional(string)
+            is_secret    = optional(bool)
+            source_field = optional(string)
+          })))
+        }))
+        service_bus_topic = optional(object({
+          resource_id = string
+          delivery_attribute_mappings = optional(list(object({
+            name         = string
+            type         = string
+            value        = optional(string)
+            is_secret    = optional(bool)
+            source_field = optional(string)
+          })))
+        }))
+        storage_queue = optional(object({
+          resource_id                           = string
+          queue_name                            = string
+          queue_message_time_to_live_in_seconds = optional(number)
+        }))
+        webhook = optional(object({
+          endpoint_url                         = string
+          max_events_per_batch                 = optional(number)
+          preferred_batch_size_in_kilobytes    = optional(number)
+          azure_active_directory_tenant_id     = optional(string)
+          azure_active_directory_app_id_or_uri = optional(string)
+          minimum_tls_version_allowed          = optional(string)
+          delivery_attribute_mappings = optional(list(object({
+            name         = string
+            type         = string
+            value        = optional(string)
+            is_secret    = optional(bool)
+            source_field = optional(string)
+          })))
+        }))
       })
     }))
-    destination = object({
-      endpointType = string
-      properties   = optional(map(string))
-    })
-    event_delivery_schema = optional(string)
-    expiration_time_utc   = optional(string)
-    filter = optional(object({
-      advancedFilters = optional(list(object({
-        key          = string
-        operatorType = string
-        value        = optional(number)
-        values       = optional(list(string))
-      })))
-      enableAdvancedFilteringOnArrays = optional(bool)
-      includedEventTypes              = optional(list(string))
-      isSubjectCaseSensitive          = optional(bool)
-      subjectBeginsWith               = optional(string)
-      subjectEndsWith                 = optional(string)
+
+    # Dead letter destination (StorageBlob only)
+    dead_letter_destination = optional(object({
+      storage_blob = object({
+        resource_id         = string
+        blob_container_name = string
+      })
     }))
+
+    # Dead letter with managed identity
+    dead_letter_with_resource_identity = optional(object({
+      identity = object({
+        type                   = string # "SystemAssigned" or "UserAssigned"
+        user_assigned_identity = optional(string)
+      })
+      dead_letter_destination = object({
+        storage_blob = object({
+          resource_id         = string
+          blob_container_name = string
+        })
+      })
+    }))
+
+    # Event delivery schema
+    event_delivery_schema = optional(string) # "EventGridSchema", "CloudEventSchemaV1_0", "CustomInputSchema"
+
+    # Expiration time
+    expiration_time_utc = optional(string)
+
+    # Filter configuration
+    filter = optional(object({
+      subject_begins_with                 = optional(string)
+      subject_ends_with                   = optional(string)
+      included_event_types                = optional(list(string))
+      is_subject_case_sensitive           = optional(bool)
+      enable_advanced_filtering_on_arrays = optional(bool)
+      advanced_filters = optional(list(object({
+        key           = string
+        operator_type = string
+        # For single value operators (NumberGreaterThan, NumberLessThan, etc.)
+        value = optional(any)
+        # For multi-value operators (StringIn, NumberIn, etc.)
+        values = optional(list(any))
+      })))
+    }))
+
+    # Labels
     labels = optional(list(string))
+
+    # Retry policy
     retry_policy = optional(object({
-      eventTimeToLiveInMinutes = optional(number)
-      maxDeliveryAttempts      = optional(number)
+      max_delivery_attempts         = optional(number)
+      event_time_to_live_in_minutes = optional(number)
     }))
   }))
   default     = {}
   description = <<DESCRIPTION
-A map of event subscriptions to create on the Event Grid Topic. The map key is deliberately arbitrary to avoid issues where map keys maybe unknown at plan time.
+A map of event subscriptions to create on the Event Grid Topic.
+
+Each event subscription supports the following:
 
 - `name` - (Required) The name of the event subscription.
-- `destination` - (Required) The destination where events will be delivered. This is an object with:
-  - `endpointType` - (Required) The type of endpoint (e.g., "WebHook", "EventHub", "StorageQueue", "ServiceBusQueue", "AzureFunction").
-  - `properties` - (Optional) A map of string properties specific to the endpoint type. For complex nested objects, values should be JSON-encoded strings.
-- `dead_letter_destination` - (Optional) The dead letter destination of the event subscription with:
-  - `endpointType` - (Required) The type of dead letter endpoint.
-  - `properties` - (Optional) A map of string properties specific to the dead letter endpoint type.
-- `dead_letter_with_resource_identity` - (Optional) Dead letter configuration using a managed identity with:
-  - `deadLetterDestination` - (Required) Dead letter destination configuration.
-  - `identity` - (Required) Managed identity configuration with type and optional userAssignedIdentity.
-- `delivery_with_resource_identity` - (Optional) Delivery configuration using a managed identity with:
-  - `destination` - (Required) Destination configuration.
-  - `identity` - (Required) Managed identity configuration with type and optional userAssignedIdentity.
-- `event_delivery_schema` - (Optional) The event delivery schema. Possible values: "EventGridSchema", "CloudEventSchemaV1_0", "CustomInputSchema".
-- `expiration_time_utc` - (Optional) Expiration time of the event subscription in UTC format.
-- `filter` - (Optional) The filter to apply to the event subscription with:
-  - `advancedFilters` - (Optional) List of advanced filters. Each filter has:
-    - `key` - (Required) The field path in the event to filter on.
-    - `operatorType` - (Required) The operator type (e.g., "NumberGreaterThan", "StringContains", "BoolEquals").
-    - `value` - (Optional) Single value for numeric/boolean operators (number type).
-    - `values` - (Optional) List of string values for string operators.
-  - `enableAdvancedFilteringOnArrays` - (Optional) Enable advanced filtering on arrays.
-  - `includedEventTypes` - (Optional) List of event types to include.
-  - `isSubjectCaseSensitive` - (Optional) Whether subject filtering is case sensitive.
-  - `subjectBeginsWith` - (Optional) Subject prefix filter.
-  - `subjectEndsWith` - (Optional) Subject suffix filter.
-- `labels` - (Optional) A list of labels to assign to the event subscription.
-- `retry_policy` - (Optional) The retry policy for event delivery with:
-  - `eventTimeToLiveInMinutes` - (Optional) Time to live for events in minutes.
-  - `maxDeliveryAttempts` - (Optional) Maximum number of delivery attempts.
 
-Example:
+- `destination` - (Optional) Direct delivery destination. Specify exactly one destination type:
+  - `azure_function` - Azure Function destination with `resource_id`, optional `max_events_per_batch`, `preferred_batch_size_in_kilobytes`, and `delivery_attribute_mappings`.
+  - `event_hub` - Event Hub destination with `resource_id` and optional `delivery_attribute_mappings`.
+  - `hybrid_connection` - Hybrid Connection destination with `resource_id` and optional `delivery_attribute_mappings`.
+  - `monitor_alert` - Monitor Alert destination with `severity` (Sev0-Sev4), optional `action_groups` and `description`.
+  - `namespace_topic` - Event Grid Namespace Topic destination with `resource_id`.
+  - `service_bus_queue` - Service Bus Queue destination with `resource_id` and optional `delivery_attribute_mappings`.
+  - `service_bus_topic` - Service Bus Topic destination with `resource_id` and optional `delivery_attribute_mappings`.
+  - `storage_queue` - Storage Queue destination with `resource_id`, `queue_name`, and optional `queue_message_time_to_live_in_seconds`.
+  - `webhook` - WebHook destination with `endpoint_url`, optional `max_events_per_batch`, `preferred_batch_size_in_kilobytes`, `azure_active_directory_tenant_id`, `azure_active_directory_app_id_or_uri`, `minimum_tls_version_allowed`, and `delivery_attribute_mappings`.
+
+- `delivery_with_resource_identity` - (Optional) Delivery using managed identity (recommended for secure RBAC-based delivery):
+  - `identity` - Identity configuration with `type` ("SystemAssigned" or "UserAssigned") and optional `user_assigned_identity`.
+  - `destination` - Same destination types as above.
+
+- `dead_letter_destination` - (Optional) Dead letter destination (only StorageBlob supported):
+  - `storage_blob` - Storage blob with `resource_id` and `blob_container_name`.
+
+- `dead_letter_with_resource_identity` - (Optional) Dead letter using managed identity.
+
+- `event_delivery_schema` - (Optional) Schema for delivered events: "EventGridSchema", "CloudEventSchemaV1_0", "CustomInputSchema".
+
+- `filter` - (Optional) Event filtering configuration:
+  - `subject_begins_with` - Subject prefix filter.
+  - `subject_ends_with` - Subject suffix filter.
+  - `included_event_types` - List of event types to include.
+  - `is_subject_case_sensitive` - Case sensitivity for subject filters.
+  - `enable_advanced_filtering_on_arrays` - Enable advanced filtering on arrays.
+  - `advanced_filters` - List of advanced filters with `key`, `operator_type`, `value`, and `values`.
+
+- `labels` - (Optional) List of labels.
+
+- `retry_policy` - (Optional) Retry policy with `max_delivery_attempts` and `event_time_to_live_in_minutes`.
+
+Example - Storage Queue with managed identity:
+```hcl
+event_subscriptions = {
+  storage_queue_sub = {
+    name = "my-storage-queue-subscription"
+    delivery_with_resource_identity = {
+      identity = {
+        type = "SystemAssigned"
+      }
+      destination = {
+        storage_queue = {
+          resource_id                          = "/subscriptions/.../storageAccounts/mystorageaccount"
+          queue_name                           = "myqueue"
+          queue_message_time_to_live_in_seconds = 300
+        }
+      }
+    }
+    filter = {
+      subject_begins_with = "/myapp/"
+      included_event_types = ["Microsoft.Storage.BlobCreated"]
+    }
+  }
+}
+```
+
+Example - WebHook destination:
 ```hcl
 event_subscriptions = {
   webhook_sub = {
     name = "my-webhook-subscription"
     destination = {
-      endpointType = "WebHook"
-      properties = {
-        endpointUrl                   = "https://example.com/webhook"
-        maxEventsPerBatch             = "10"
-        preferredBatchSizeInKilobytes = "64"
+      webhook = {
+        endpoint_url          = "https://example.com/webhook"
+        max_events_per_batch  = 10
+        minimum_tls_version_allowed = "1.2"
       }
-    }
-    filter = {
-      subjectBeginsWith = "/myapp/"
-      includedEventTypes = ["Microsoft.Storage.BlobCreated"]
-    }
-  }
-  eventhub_sub = {
-    name = "my-eventhub-subscription"
-    destination = {
-      endpointType = "EventHub"
-      properties = {
-        resourceId = "/subscriptions/.../eventHubs/myeventhub"
-      }
-    }
-    filter = {
-      advancedFilters = [
-        {
-          key          = "data.temperature"
-          operatorType = "NumberGreaterThan"
-          value        = 50
-        }
-      ]
     }
   }
 }
@@ -237,8 +456,18 @@ DESCRIPTION
   nullable    = false
 
   validation {
-    condition     = alltrue([for k, v in var.event_subscriptions : can(v.name) && can(v.destination)])
-    error_message = "Each event subscription must have a 'name' and 'destination' property."
+    condition = alltrue([
+      for k, v in var.event_subscriptions :
+      v.name != null && (v.destination != null || v.delivery_with_resource_identity != null)
+    ])
+    error_message = "Each event subscription must have a 'name' and either 'destination' or 'delivery_with_resource_identity'."
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.event_subscriptions :
+      v.event_delivery_schema == null ? true : contains(["EventGridSchema", "CloudEventSchemaV1_0", "CustomInputSchema"], v.event_delivery_schema)
+    ])
+    error_message = "event_delivery_schema must be one of: 'EventGridSchema', 'CloudEventSchemaV1_0', 'CustomInputSchema'."
   }
 }
 
