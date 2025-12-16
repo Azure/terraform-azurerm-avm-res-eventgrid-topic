@@ -50,8 +50,8 @@ locals {
       v.delivery_with_resource_identity == null ? null :
       local.delivery_identity_endpoint_type[k] == "AzureFunction" ? {
         resourceId                    = v.delivery_with_resource_identity.destination.azure_function.resource_id
-        maxEventsPerBatch             = v.delivery_with_resource_identity.destination.azure_function.max_events_per_batch
-        preferredBatchSizeInKilobytes = v.delivery_with_resource_identity.destination.azure_function.preferred_batch_size_in_kilobytes
+        maxEventsPerBatch             = v.delivery_with_resource_identity.destination.azure_function.max_events_per_batch != null ? tonumber(v.delivery_with_resource_identity.destination.azure_function.max_events_per_batch) : null
+        preferredBatchSizeInKilobytes = v.delivery_with_resource_identity.destination.azure_function.preferred_batch_size_in_kilobytes != null ? tonumber(v.delivery_with_resource_identity.destination.azure_function.preferred_batch_size_in_kilobytes) : null
         deliveryAttributeMappings     = try(v.delivery_with_resource_identity.destination.azure_function.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
       } :
       local.delivery_identity_endpoint_type[k] == "EventHub" ? {
@@ -81,12 +81,12 @@ locals {
       local.delivery_identity_endpoint_type[k] == "StorageQueue" ? {
         resourceId                      = v.delivery_with_resource_identity.destination.storage_queue.resource_id
         queueName                       = v.delivery_with_resource_identity.destination.storage_queue.queue_name
-        queueMessageTimeToLiveInSeconds = v.delivery_with_resource_identity.destination.storage_queue.queue_message_time_to_live_in_seconds
+        queueMessageTimeToLiveInSeconds = v.delivery_with_resource_identity.destination.storage_queue.queue_message_time_to_live_in_seconds != null ? tonumber(v.delivery_with_resource_identity.destination.storage_queue.queue_message_time_to_live_in_seconds) : null
       } :
       local.delivery_identity_endpoint_type[k] == "WebHook" ? {
         endpointUrl                            = v.delivery_with_resource_identity.destination.webhook.endpoint_url
-        maxEventsPerBatch                      = v.delivery_with_resource_identity.destination.webhook.max_events_per_batch
-        preferredBatchSizeInKilobytes          = v.delivery_with_resource_identity.destination.webhook.preferred_batch_size_in_kilobytes
+        maxEventsPerBatch                      = v.delivery_with_resource_identity.destination.webhook.max_events_per_batch != null ? tonumber(v.delivery_with_resource_identity.destination.webhook.max_events_per_batch) : null
+        preferredBatchSizeInKilobytes          = v.delivery_with_resource_identity.destination.webhook.preferred_batch_size_in_kilobytes != null ? tonumber(v.delivery_with_resource_identity.destination.webhook.preferred_batch_size_in_kilobytes) : null
         azureActiveDirectoryTenantId           = v.delivery_with_resource_identity.destination.webhook.azure_active_directory_tenant_id
         azureActiveDirectoryApplicationIdOrUri = v.delivery_with_resource_identity.destination.webhook.azure_active_directory_app_id_or_uri
         minimumTlsVersionAllowed               = v.delivery_with_resource_identity.destination.webhook.minimum_tls_version_allowed
@@ -115,8 +115,8 @@ locals {
       v.destination == null ? null :
       local.destination_endpoint_type[k] == "AzureFunction" ? {
         resourceId                    = v.destination.azure_function.resource_id
-        maxEventsPerBatch             = v.destination.azure_function.max_events_per_batch
-        preferredBatchSizeInKilobytes = v.destination.azure_function.preferred_batch_size_in_kilobytes
+        maxEventsPerBatch             = v.destination.azure_function.max_events_per_batch != null ? tonumber(v.destination.azure_function.max_events_per_batch) : null
+        preferredBatchSizeInKilobytes = v.destination.azure_function.preferred_batch_size_in_kilobytes != null ? tonumber(v.destination.azure_function.preferred_batch_size_in_kilobytes) : null
         deliveryAttributeMappings     = try(v.destination.azure_function.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
       } :
       local.destination_endpoint_type[k] == "EventHub" ? {
@@ -146,12 +146,12 @@ locals {
       local.destination_endpoint_type[k] == "StorageQueue" ? {
         resourceId                      = v.destination.storage_queue.resource_id
         queueName                       = v.destination.storage_queue.queue_name
-        queueMessageTimeToLiveInSeconds = v.destination.storage_queue.queue_message_time_to_live_in_seconds
+        queueMessageTimeToLiveInSeconds = v.destination.storage_queue.queue_message_time_to_live_in_seconds != null ? tonumber(v.destination.storage_queue.queue_message_time_to_live_in_seconds) : null
       } :
       local.destination_endpoint_type[k] == "WebHook" ? {
         endpointUrl                            = v.destination.webhook.endpoint_url
-        maxEventsPerBatch                      = v.destination.webhook.max_events_per_batch
-        preferredBatchSizeInKilobytes          = v.destination.webhook.preferred_batch_size_in_kilobytes
+        maxEventsPerBatch                      = v.destination.webhook.max_events_per_batch != null ? tonumber(v.destination.webhook.max_events_per_batch) : null
+        preferredBatchSizeInKilobytes          = v.destination.webhook.preferred_batch_size_in_kilobytes != null ? tonumber(v.destination.webhook.preferred_batch_size_in_kilobytes) : null
         azureActiveDirectoryTenantId           = v.destination.webhook.azure_active_directory_tenant_id
         azureActiveDirectoryApplicationIdOrUri = v.destination.webhook.azure_active_directory_app_id_or_uri
         minimumTlsVersionAllowed               = v.destination.webhook.minimum_tls_version_allowed
@@ -183,8 +183,8 @@ locals {
   event_subscription_retry_policies = {
     for k, v in var.event_subscriptions : k => (
       v.retry_policy != null ? {
-        maxDeliveryAttempts      = v.retry_policy.max_delivery_attempts
-        eventTimeToLiveInMinutes = v.retry_policy.event_time_to_live_in_minutes
+        maxDeliveryAttempts      = v.retry_policy.max_delivery_attempts != null ? tonumber(v.retry_policy.max_delivery_attempts) : null
+        eventTimeToLiveInMinutes = v.retry_policy.event_time_to_live_in_minutes != null ? tonumber(v.retry_policy.event_time_to_live_in_minutes) : null
       } : null
     )
   }
