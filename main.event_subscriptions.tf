@@ -29,6 +29,15 @@ locals {
       }
     ]
   }
+  # Azure Function properties for delivery_with_resource_identity
+  delivery_identity_azure_function_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                    = v.delivery_with_resource_identity.destination.azure_function.resource_id
+      maxEventsPerBatch             = v.delivery_with_resource_identity.destination.azure_function.max_events_per_batch
+      preferredBatchSizeInKilobytes = v.delivery_with_resource_identity.destination.azure_function.preferred_batch_size_in_kilobytes
+      deliveryAttributeMappings     = try(v.delivery_with_resource_identity.destination.azure_function.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.delivery_with_resource_identity != null && try(v.delivery_with_resource_identity.destination.azure_function, null) != null
+  }
   # Helper to determine endpoint type for delivery_with_resource_identity destination
   delivery_identity_endpoint_type = {
     for k, v in var.event_subscriptions : k => (
@@ -44,55 +53,156 @@ locals {
       try(v.delivery_with_resource_identity.destination.webhook, null) != null ? "WebHook" : null
     )
   }
-  # Build destination properties for delivery_with_resource_identity
+  # Event Hub properties for delivery_with_resource_identity
+  delivery_identity_event_hub_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                = v.delivery_with_resource_identity.destination.event_hub.resource_id
+      deliveryAttributeMappings = try(v.delivery_with_resource_identity.destination.event_hub.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.delivery_with_resource_identity != null && try(v.delivery_with_resource_identity.destination.event_hub, null) != null
+  }
+  # Hybrid Connection properties for delivery_with_resource_identity
+  delivery_identity_hybrid_connection_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                = v.delivery_with_resource_identity.destination.hybrid_connection.resource_id
+      deliveryAttributeMappings = try(v.delivery_with_resource_identity.destination.hybrid_connection.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.delivery_with_resource_identity != null && try(v.delivery_with_resource_identity.destination.hybrid_connection, null) != null
+  }
+  # Monitor Alert properties for delivery_with_resource_identity
+  delivery_identity_monitor_alert_props = {
+    for k, v in var.event_subscriptions : k => {
+      severity     = v.delivery_with_resource_identity.destination.monitor_alert.severity
+      actionGroups = v.delivery_with_resource_identity.destination.monitor_alert.action_groups
+      description  = v.delivery_with_resource_identity.destination.monitor_alert.description
+    } if v.delivery_with_resource_identity != null && try(v.delivery_with_resource_identity.destination.monitor_alert, null) != null
+  }
+  # Namespace Topic properties for delivery_with_resource_identity
+  delivery_identity_namespace_topic_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId = v.delivery_with_resource_identity.destination.namespace_topic.resource_id
+    } if v.delivery_with_resource_identity != null && try(v.delivery_with_resource_identity.destination.namespace_topic, null) != null
+  }
+  # Lookup delivery_with_resource_identity properties using try() to avoid type unification
   delivery_identity_properties = {
     for k, v in var.event_subscriptions : k => (
       v.delivery_with_resource_identity == null ? null :
-      local.delivery_identity_endpoint_type[k] == "AzureFunction" ? {
-        resourceId                    = v.delivery_with_resource_identity.destination.azure_function.resource_id
-        maxEventsPerBatch             = v.delivery_with_resource_identity.destination.azure_function.max_events_per_batch != null ? tonumber(v.delivery_with_resource_identity.destination.azure_function.max_events_per_batch) : null
-        preferredBatchSizeInKilobytes = v.delivery_with_resource_identity.destination.azure_function.preferred_batch_size_in_kilobytes != null ? tonumber(v.delivery_with_resource_identity.destination.azure_function.preferred_batch_size_in_kilobytes) : null
-        deliveryAttributeMappings     = try(v.delivery_with_resource_identity.destination.azure_function.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.delivery_identity_endpoint_type[k] == "EventHub" ? {
-        resourceId                = v.delivery_with_resource_identity.destination.event_hub.resource_id
-        deliveryAttributeMappings = try(v.delivery_with_resource_identity.destination.event_hub.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.delivery_identity_endpoint_type[k] == "HybridConnection" ? {
-        resourceId                = v.delivery_with_resource_identity.destination.hybrid_connection.resource_id
-        deliveryAttributeMappings = try(v.delivery_with_resource_identity.destination.hybrid_connection.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.delivery_identity_endpoint_type[k] == "MonitorAlert" ? {
-        severity     = v.delivery_with_resource_identity.destination.monitor_alert.severity
-        actionGroups = v.delivery_with_resource_identity.destination.monitor_alert.action_groups
-        description  = v.delivery_with_resource_identity.destination.monitor_alert.description
-      } :
-      local.delivery_identity_endpoint_type[k] == "NamespaceTopic" ? {
-        resourceId = v.delivery_with_resource_identity.destination.namespace_topic.resource_id
-      } :
-      local.delivery_identity_endpoint_type[k] == "ServiceBusQueue" ? {
-        resourceId                = v.delivery_with_resource_identity.destination.service_bus_queue.resource_id
-        deliveryAttributeMappings = try(v.delivery_with_resource_identity.destination.service_bus_queue.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.delivery_identity_endpoint_type[k] == "ServiceBusTopic" ? {
-        resourceId                = v.delivery_with_resource_identity.destination.service_bus_topic.resource_id
-        deliveryAttributeMappings = try(v.delivery_with_resource_identity.destination.service_bus_topic.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.delivery_identity_endpoint_type[k] == "StorageQueue" ? {
-        resourceId                      = v.delivery_with_resource_identity.destination.storage_queue.resource_id
-        queueName                       = v.delivery_with_resource_identity.destination.storage_queue.queue_name
-        queueMessageTimeToLiveInSeconds = v.delivery_with_resource_identity.destination.storage_queue.queue_message_time_to_live_in_seconds != null ? tonumber(v.delivery_with_resource_identity.destination.storage_queue.queue_message_time_to_live_in_seconds) : null
-      } :
-      local.delivery_identity_endpoint_type[k] == "WebHook" ? {
-        endpointUrl                            = v.delivery_with_resource_identity.destination.webhook.endpoint_url
-        maxEventsPerBatch                      = v.delivery_with_resource_identity.destination.webhook.max_events_per_batch != null ? tonumber(v.delivery_with_resource_identity.destination.webhook.max_events_per_batch) : null
-        preferredBatchSizeInKilobytes          = v.delivery_with_resource_identity.destination.webhook.preferred_batch_size_in_kilobytes != null ? tonumber(v.delivery_with_resource_identity.destination.webhook.preferred_batch_size_in_kilobytes) : null
-        azureActiveDirectoryTenantId           = v.delivery_with_resource_identity.destination.webhook.azure_active_directory_tenant_id
-        azureActiveDirectoryApplicationIdOrUri = v.delivery_with_resource_identity.destination.webhook.azure_active_directory_app_id_or_uri
-        minimumTlsVersionAllowed               = v.delivery_with_resource_identity.destination.webhook.minimum_tls_version_allowed
-        deliveryAttributeMappings              = try(v.delivery_with_resource_identity.destination.webhook.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } : null
+      try(local.delivery_identity_storage_queue_props[k], null) != null ? local.delivery_identity_storage_queue_props[k] :
+      try(local.delivery_identity_azure_function_props[k], null) != null ? local.delivery_identity_azure_function_props[k] :
+      try(local.delivery_identity_event_hub_props[k], null) != null ? local.delivery_identity_event_hub_props[k] :
+      try(local.delivery_identity_hybrid_connection_props[k], null) != null ? local.delivery_identity_hybrid_connection_props[k] :
+      try(local.delivery_identity_monitor_alert_props[k], null) != null ? local.delivery_identity_monitor_alert_props[k] :
+      try(local.delivery_identity_namespace_topic_props[k], null) != null ? local.delivery_identity_namespace_topic_props[k] :
+      try(local.delivery_identity_service_bus_queue_props[k], null) != null ? local.delivery_identity_service_bus_queue_props[k] :
+      try(local.delivery_identity_service_bus_topic_props[k], null) != null ? local.delivery_identity_service_bus_topic_props[k] :
+      try(local.delivery_identity_webhook_props[k], null) != null ? local.delivery_identity_webhook_props[k] :
+      null
     )
+  }
+  # Service Bus Queue properties for delivery_with_resource_identity
+  delivery_identity_service_bus_queue_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                = v.delivery_with_resource_identity.destination.service_bus_queue.resource_id
+      deliveryAttributeMappings = try(v.delivery_with_resource_identity.destination.service_bus_queue.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.delivery_with_resource_identity != null && try(v.delivery_with_resource_identity.destination.service_bus_queue, null) != null
+  }
+  # Service Bus Topic properties for delivery_with_resource_identity
+  delivery_identity_service_bus_topic_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                = v.delivery_with_resource_identity.destination.service_bus_topic.resource_id
+      deliveryAttributeMappings = try(v.delivery_with_resource_identity.destination.service_bus_topic.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.delivery_with_resource_identity != null && try(v.delivery_with_resource_identity.destination.service_bus_topic, null) != null
+  }
+  # Separate typed locals for each destination type - avoids Terraform type unification issues
+  # Storage Queue properties for delivery_with_resource_identity
+  delivery_identity_storage_queue_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                      = v.delivery_with_resource_identity.destination.storage_queue.resource_id
+      queueName                       = v.delivery_with_resource_identity.destination.storage_queue.queue_name
+      queueMessageTimeToLiveInSeconds = v.delivery_with_resource_identity.destination.storage_queue.queue_message_time_to_live_in_seconds
+    } if v.delivery_with_resource_identity != null && try(v.delivery_with_resource_identity.destination.storage_queue, null) != null
+  }
+  # WebHook properties for delivery_with_resource_identity
+  delivery_identity_webhook_props = {
+    for k, v in var.event_subscriptions : k => {
+      endpointUrl                            = v.delivery_with_resource_identity.destination.webhook.endpoint_url
+      maxEventsPerBatch                      = v.delivery_with_resource_identity.destination.webhook.max_events_per_batch
+      preferredBatchSizeInKilobytes          = v.delivery_with_resource_identity.destination.webhook.preferred_batch_size_in_kilobytes
+      azureActiveDirectoryTenantId           = v.delivery_with_resource_identity.destination.webhook.azure_active_directory_tenant_id
+      azureActiveDirectoryApplicationIdOrUri = v.delivery_with_resource_identity.destination.webhook.azure_active_directory_app_id_or_uri
+      minimumTlsVersionAllowed               = v.delivery_with_resource_identity.destination.webhook.minimum_tls_version_allowed
+      deliveryAttributeMappings              = try(v.delivery_with_resource_identity.destination.webhook.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.delivery_with_resource_identity != null && try(v.delivery_with_resource_identity.destination.webhook, null) != null
+  }
+  # Azure Function properties
+  dest_azure_function_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                    = v.destination.azure_function.resource_id
+      maxEventsPerBatch             = v.destination.azure_function.max_events_per_batch
+      preferredBatchSizeInKilobytes = v.destination.azure_function.preferred_batch_size_in_kilobytes
+      deliveryAttributeMappings     = try(v.destination.azure_function.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.destination != null && try(v.destination.azure_function, null) != null
+  }
+  # Event Hub properties
+  dest_event_hub_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                = v.destination.event_hub.resource_id
+      deliveryAttributeMappings = try(v.destination.event_hub.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.destination != null && try(v.destination.event_hub, null) != null
+  }
+  # Hybrid Connection properties
+  dest_hybrid_connection_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                = v.destination.hybrid_connection.resource_id
+      deliveryAttributeMappings = try(v.destination.hybrid_connection.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.destination != null && try(v.destination.hybrid_connection, null) != null
+  }
+  # Monitor Alert properties
+  dest_monitor_alert_props = {
+    for k, v in var.event_subscriptions : k => {
+      severity     = v.destination.monitor_alert.severity
+      actionGroups = v.destination.monitor_alert.action_groups
+      description  = v.destination.monitor_alert.description
+    } if v.destination != null && try(v.destination.monitor_alert, null) != null
+  }
+  # Namespace Topic properties
+  dest_namespace_topic_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId = v.destination.namespace_topic.resource_id
+    } if v.destination != null && try(v.destination.namespace_topic, null) != null
+  }
+  # Service Bus Queue properties
+  dest_service_bus_queue_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                = v.destination.service_bus_queue.resource_id
+      deliveryAttributeMappings = try(v.destination.service_bus_queue.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.destination != null && try(v.destination.service_bus_queue, null) != null
+  }
+  # Service Bus Topic properties
+  dest_service_bus_topic_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                = v.destination.service_bus_topic.resource_id
+      deliveryAttributeMappings = try(v.destination.service_bus_topic.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.destination != null && try(v.destination.service_bus_topic, null) != null
+  }
+  # Separate typed locals for each direct destination type
+  # Storage Queue properties
+  dest_storage_queue_props = {
+    for k, v in var.event_subscriptions : k => {
+      resourceId                      = v.destination.storage_queue.resource_id
+      queueName                       = v.destination.storage_queue.queue_name
+      queueMessageTimeToLiveInSeconds = v.destination.storage_queue.queue_message_time_to_live_in_seconds
+    } if v.destination != null && try(v.destination.storage_queue, null) != null
+  }
+  # WebHook properties
+  dest_webhook_props = {
+    for k, v in var.event_subscriptions : k => {
+      endpointUrl                            = v.destination.webhook.endpoint_url
+      maxEventsPerBatch                      = v.destination.webhook.max_events_per_batch
+      preferredBatchSizeInKilobytes          = v.destination.webhook.preferred_batch_size_in_kilobytes
+      azureActiveDirectoryTenantId           = v.destination.webhook.azure_active_directory_tenant_id
+      azureActiveDirectoryApplicationIdOrUri = v.destination.webhook.azure_active_directory_app_id_or_uri
+      minimumTlsVersionAllowed               = v.destination.webhook.minimum_tls_version_allowed
+      deliveryAttributeMappings              = try(v.destination.webhook.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
+    } if v.destination != null && try(v.destination.webhook, null) != null
   }
   # Helper to determine endpoint type for direct destination
   destination_endpoint_type = {
@@ -109,54 +219,20 @@ locals {
       try(v.destination.webhook, null) != null ? "WebHook" : null
     )
   }
-  # Build destination properties for direct destination
+  # Lookup direct destination properties using try() to avoid type unification
   destination_properties = {
     for k, v in var.event_subscriptions : k => (
       v.destination == null ? null :
-      local.destination_endpoint_type[k] == "AzureFunction" ? {
-        resourceId                    = v.destination.azure_function.resource_id
-        maxEventsPerBatch             = v.destination.azure_function.max_events_per_batch != null ? tonumber(v.destination.azure_function.max_events_per_batch) : null
-        preferredBatchSizeInKilobytes = v.destination.azure_function.preferred_batch_size_in_kilobytes != null ? tonumber(v.destination.azure_function.preferred_batch_size_in_kilobytes) : null
-        deliveryAttributeMappings     = try(v.destination.azure_function.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.destination_endpoint_type[k] == "EventHub" ? {
-        resourceId                = v.destination.event_hub.resource_id
-        deliveryAttributeMappings = try(v.destination.event_hub.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.destination_endpoint_type[k] == "HybridConnection" ? {
-        resourceId                = v.destination.hybrid_connection.resource_id
-        deliveryAttributeMappings = try(v.destination.hybrid_connection.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.destination_endpoint_type[k] == "MonitorAlert" ? {
-        severity     = v.destination.monitor_alert.severity
-        actionGroups = v.destination.monitor_alert.action_groups
-        description  = v.destination.monitor_alert.description
-      } :
-      local.destination_endpoint_type[k] == "NamespaceTopic" ? {
-        resourceId = v.destination.namespace_topic.resource_id
-      } :
-      local.destination_endpoint_type[k] == "ServiceBusQueue" ? {
-        resourceId                = v.destination.service_bus_queue.resource_id
-        deliveryAttributeMappings = try(v.destination.service_bus_queue.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.destination_endpoint_type[k] == "ServiceBusTopic" ? {
-        resourceId                = v.destination.service_bus_topic.resource_id
-        deliveryAttributeMappings = try(v.destination.service_bus_topic.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } :
-      local.destination_endpoint_type[k] == "StorageQueue" ? {
-        resourceId                      = v.destination.storage_queue.resource_id
-        queueName                       = v.destination.storage_queue.queue_name
-        queueMessageTimeToLiveInSeconds = v.destination.storage_queue.queue_message_time_to_live_in_seconds != null ? tonumber(v.destination.storage_queue.queue_message_time_to_live_in_seconds) : null
-      } :
-      local.destination_endpoint_type[k] == "WebHook" ? {
-        endpointUrl                            = v.destination.webhook.endpoint_url
-        maxEventsPerBatch                      = v.destination.webhook.max_events_per_batch != null ? tonumber(v.destination.webhook.max_events_per_batch) : null
-        preferredBatchSizeInKilobytes          = v.destination.webhook.preferred_batch_size_in_kilobytes != null ? tonumber(v.destination.webhook.preferred_batch_size_in_kilobytes) : null
-        azureActiveDirectoryTenantId           = v.destination.webhook.azure_active_directory_tenant_id
-        azureActiveDirectoryApplicationIdOrUri = v.destination.webhook.azure_active_directory_app_id_or_uri
-        minimumTlsVersionAllowed               = v.destination.webhook.minimum_tls_version_allowed
-        deliveryAttributeMappings              = try(v.destination.webhook.delivery_attribute_mappings, null) != null ? local.build_delivery_attribute_mappings[k] : null
-      } : null
+      try(local.dest_storage_queue_props[k], null) != null ? local.dest_storage_queue_props[k] :
+      try(local.dest_azure_function_props[k], null) != null ? local.dest_azure_function_props[k] :
+      try(local.dest_event_hub_props[k], null) != null ? local.dest_event_hub_props[k] :
+      try(local.dest_hybrid_connection_props[k], null) != null ? local.dest_hybrid_connection_props[k] :
+      try(local.dest_monitor_alert_props[k], null) != null ? local.dest_monitor_alert_props[k] :
+      try(local.dest_namespace_topic_props[k], null) != null ? local.dest_namespace_topic_props[k] :
+      try(local.dest_service_bus_queue_props[k], null) != null ? local.dest_service_bus_queue_props[k] :
+      try(local.dest_service_bus_topic_props[k], null) != null ? local.dest_service_bus_topic_props[k] :
+      try(local.dest_webhook_props[k], null) != null ? local.dest_webhook_props[k] :
+      null
     )
   }
   # Transform filter configuration
