@@ -42,7 +42,8 @@ module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
   version = "0.9.0"
 
-  geography_filter = "United States"
+  geography_filter       = "United States"
+  has_availability_zones = true
 }
 
 # This allows us to randomize the region for the resource group.
@@ -154,45 +155,37 @@ resource "time_sleep" "wait_for_rbac" {
   depends_on = [azurerm_role_assignment.eventgrid_storage_queue_sender]
 }
 
-# Event subscription created OUTSIDE the module using delivery_with_resource_identity
-# This pattern is required when:
+# Event subscription created OUTSIDE the module using the event_subscription submodule
+# This pattern is recommended when:
 # 1. You want to use the Topic's managed identity for secure RBAC-based delivery
 # 2. The role assignment depends on the module's system-assigned identity output
+# 3. You want to create subscriptions on existing topics not managed by this module
 # This avoids the chicken-and-egg problem where the module needs RBAC before creating subscriptions.
-resource "azapi_resource" "event_subscription" {
-  name      = "es-storagequeue-${module.naming.eventgrid_topic.name_unique}"
-  parent_id = module.eventgrid_topic.resource_id
-  type      = "Microsoft.EventGrid/topics/eventSubscriptions@2025-02-15"
-  body = {
-    properties = {
-      deliveryWithResourceIdentity = {
-        identity = {
-          type = "SystemAssigned"
-        }
-        destination = {
-          endpointType = "StorageQueue"
-          properties = {
-            resourceId                      = azapi_resource.storage_account.id
-            queueName                       = azapi_resource.storage_queue.name
-            queueMessageTimeToLiveInSeconds = 300
-          }
-        }
-      }
-      eventDeliverySchema = "EventGridSchema"
-      filter = {
-        isSubjectCaseSensitive = false
-      }
-      retryPolicy = {
-        maxDeliveryAttempts      = 30
-        eventTimeToLiveInMinutes = 1440
+module "event_subscription_external" {
+  source = "../../modules/event_subscription"
+
+  event_grid_topic_resource_id = module.eventgrid_topic.resource_id
+  name                         = "es-storagequeue-${module.naming.eventgrid_topic.name_unique}"
+  delivery_with_resource_identity = {
+    identity = {
+      type = "SystemAssigned"
+    }
+    destination = {
+      storage_queue = {
+        resource_id                           = azapi_resource.storage_account.id
+        queue_name                            = azapi_resource.storage_queue.name
+        queue_message_time_to_live_in_seconds = 300
       }
     }
   }
-  ignore_casing             = true
-  ignore_missing_property   = true
-  ignore_null_property      = true
-  response_export_values    = ["*"]
-  schema_validation_enabled = false
+  event_delivery_schema = "EventGridSchema"
+  filter = {
+    is_subject_case_sensitive = false
+  }
+  retry_policy = {
+    max_delivery_attempts         = 30
+    event_time_to_live_in_minutes = 1440
+  }
 
   depends_on = [time_sleep.wait_for_rbac]
 }
@@ -295,7 +288,6 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azapi_resource.event_subscription](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.storage_account](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.storage_queue](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.storage_queue_direct](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
@@ -324,6 +316,12 @@ No outputs.
 ## Modules
 
 The following Modules are called:
+
+### <a name="module_event_subscription_external"></a> [event\_subscription\_external](#module\_event\_subscription\_external)
+
+Source: ../../modules/event_subscription
+
+Version:
 
 ### <a name="module_eventgrid_topic"></a> [eventgrid\_topic](#module\_eventgrid\_topic)
 

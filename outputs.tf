@@ -2,14 +2,14 @@ output "event_subscription_ids" {
   description = <<DESCRIPTION
 A map of event subscription keys to their Azure Resource Manager IDs.
 DESCRIPTION
-  value       = { for k, v in azapi_resource.event_subscriptions : k => v.id }
+  value       = { for k, v in module.event_subscriptions : k => v.resource_id }
 }
 
 output "event_subscription_names" {
   description = <<DESCRIPTION
 A map of event subscription keys to their names.
 DESCRIPTION
-  value       = { for k, v in azapi_resource.event_subscriptions : k => v.name }
+  value       = { for k, v in module.event_subscriptions : k => v.name }
 }
 
 output "identity" {

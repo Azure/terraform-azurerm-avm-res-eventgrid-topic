@@ -23,7 +23,6 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
-- [azapi_resource.event_subscriptions](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.private_endpoints](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.this](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
@@ -751,6 +750,12 @@ The following Modules are called:
 Source: Azure/avm-utl-interfaces/azure
 
 Version: 0.5.0
+
+### <a name="module_event_subscriptions"></a> [event\_subscriptions](#module\_event\_subscriptions)
+
+Source: ./modules/event_subscription
+
+Version:
 
 <!-- markdownlint-disable-next-line MD041 -->
 ## Data Collection
