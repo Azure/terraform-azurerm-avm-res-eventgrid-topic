@@ -4,14 +4,16 @@
 
 locals {
   # Build delivery attribute mappings in Azure API format
+  # Note: try() is required here because coalesce() evaluates all arguments,
+  # and accessing .delivery_attribute_mappings on a null object would fail
   delivery_attribute_mappings = var.destination != null ? [
     for mapping in coalesce(
-      var.destination.azure_function.delivery_attribute_mappings,
-      var.destination.event_hub.delivery_attribute_mappings,
-      var.destination.hybrid_connection.delivery_attribute_mappings,
-      var.destination.service_bus_queue.delivery_attribute_mappings,
-      var.destination.service_bus_topic.delivery_attribute_mappings,
-      var.destination.webhook.delivery_attribute_mappings,
+      try(var.destination.azure_function.delivery_attribute_mappings, null),
+      try(var.destination.event_hub.delivery_attribute_mappings, null),
+      try(var.destination.hybrid_connection.delivery_attribute_mappings, null),
+      try(var.destination.service_bus_queue.delivery_attribute_mappings, null),
+      try(var.destination.service_bus_topic.delivery_attribute_mappings, null),
+      try(var.destination.webhook.delivery_attribute_mappings, null),
       []
       ) : {
       name = mapping.name
@@ -25,14 +27,15 @@ locals {
     }
   ] : []
   # Build delivery attribute mappings for delivery_with_resource_identity
+  # Note: try() is required here because coalesce() evaluates all arguments
   delivery_identity_attribute_mappings = var.delivery_with_resource_identity != null ? [
     for mapping in coalesce(
-      var.delivery_with_resource_identity.destination.azure_function.delivery_attribute_mappings,
-      var.delivery_with_resource_identity.destination.event_hub.delivery_attribute_mappings,
-      var.delivery_with_resource_identity.destination.hybrid_connection.delivery_attribute_mappings,
-      var.delivery_with_resource_identity.destination.service_bus_queue.delivery_attribute_mappings,
-      var.delivery_with_resource_identity.destination.service_bus_topic.delivery_attribute_mappings,
-      var.delivery_with_resource_identity.destination.webhook.delivery_attribute_mappings,
+      try(var.delivery_with_resource_identity.destination.azure_function.delivery_attribute_mappings, null),
+      try(var.delivery_with_resource_identity.destination.event_hub.delivery_attribute_mappings, null),
+      try(var.delivery_with_resource_identity.destination.hybrid_connection.delivery_attribute_mappings, null),
+      try(var.delivery_with_resource_identity.destination.service_bus_queue.delivery_attribute_mappings, null),
+      try(var.delivery_with_resource_identity.destination.service_bus_topic.delivery_attribute_mappings, null),
+      try(var.delivery_with_resource_identity.destination.webhook.delivery_attribute_mappings, null),
       []
       ) : {
       name = mapping.name
