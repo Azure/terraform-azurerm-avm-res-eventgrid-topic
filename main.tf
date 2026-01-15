@@ -38,15 +38,17 @@ resource "azurerm_monitor_diagnostic_setting" "this" {
   partner_solution_id            = each.value.marketplace_partner_resource_id
   storage_account_id             = each.value.storage_account_resource_id
 
+  # Use log categories when log_groups is empty
   dynamic "enabled_log" {
-    for_each = length(each.value.log_groups) > 0 ? [] : length(each.value.log_categories) > 0 ? each.value.log_categories : []
+    for_each = length(each.value.log_groups) == 0 ? each.value.log_categories : []
 
     content {
       category = enabled_log.value
     }
   }
+  # Use log groups when provided (takes precedence over log_categories)
   dynamic "enabled_log" {
-    for_each = length(each.value.log_groups) > 0 ? each.value.log_groups : []
+    for_each = each.value.log_groups
 
     content {
       category_group = enabled_log.value
