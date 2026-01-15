@@ -13,7 +13,7 @@ module "avm_interfaces" {
 resource "azapi_resource" "private_endpoints" {
   for_each = module.avm_interfaces.private_endpoints_azapi
 
-  location  = azapi_resource.this.location
+  location  = coalesce(local.private_endpoints[each.key].location, azapi_resource.this.location)
   name      = coalesce(local.private_endpoints[each.key].name, "pe-${var.name}-${each.key}")
   parent_id = var.parent_id
   type      = each.value.type
