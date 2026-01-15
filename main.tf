@@ -39,10 +39,17 @@ resource "azurerm_monitor_diagnostic_setting" "this" {
   storage_account_id             = each.value.storage_account_resource_id
 
   dynamic "enabled_log" {
-    for_each = length(each.value.log_categories) > 0 ? each.value.log_categories : []
+    for_each = length(each.value.log_groups) > 0 ? [] : length(each.value.log_categories) > 0 ? each.value.log_categories : []
 
     content {
       category = enabled_log.value
+    }
+  }
+  dynamic "enabled_log" {
+    for_each = length(each.value.log_groups) > 0 ? each.value.log_groups : []
+
+    content {
+      category_group = enabled_log.value
     }
   }
   dynamic "enabled_metric" {
