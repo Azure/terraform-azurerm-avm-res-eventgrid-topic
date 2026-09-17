@@ -42,6 +42,7 @@ module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
   version = "0.9.0"
 
+  enable_telemetry       = false
   geography_filter       = "United States"
   has_availability_zones = true
 }
@@ -215,7 +216,7 @@ module "eventgrid_topic" {
   }
   # Explicitly show the disable_local_auth input (module default is true)
   disable_local_auth = true
-  enable_telemetry   = true
+  enable_telemetry   = false
   # Event subscriptions are created OUTSIDE the module when using delivery_with_resource_identity
   # This is because the role assignment depends on the module's system-assigned identity output,
   # creating a circular dependency if the event subscription is inside the module.
