@@ -33,6 +33,7 @@ module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
   version = "0.9.0"
 
+  enable_telemetry       = false
   geography_filter       = "United States"
   has_availability_zones = true
 }
@@ -90,7 +91,7 @@ module "eventgrid_topic_with_log_groups" {
     }
   }
   disable_local_auth    = true
-  enable_telemetry      = true
+  enable_telemetry      = false
   public_network_access = "Enabled"
   tags = {
     environment = "example"
@@ -122,7 +123,7 @@ module "eventgrid_topic_with_log_categories" {
     }
   }
   disable_local_auth    = true
-  enable_telemetry      = true
+  enable_telemetry      = false
   public_network_access = "Enabled"
   tags = {
     environment = "example"
@@ -153,7 +154,7 @@ module "eventgrid_topic_mixed" {
     }
   }
   disable_local_auth    = true
-  enable_telemetry      = true
+  enable_telemetry      = false
   public_network_access = "Enabled"
   tags = {
     environment = "example"
