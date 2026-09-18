@@ -1,0 +1,7 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Azure/azure-verified-modules-tools/main/src/Avm.Authoring/Resources/Schemas/v1/avm-module-metadata.schema.json",
+  "moduleDisplayName": "Event Subscription Submodule",
+  "moduleDescription": "This submodule creates an Event Grid event subscription on an Event Grid Topic.",
+  "canonicalType": "Microsoft.EventGrid/topics/eventSubscriptions",
+  "telemetryIdPrefix": "46d3xtrf.res.193adf9"
+}
