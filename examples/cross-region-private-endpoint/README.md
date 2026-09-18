@@ -100,7 +100,7 @@ module "eventgrid_topic" {
   location         = azurerm_resource_group.topic_rg.location # East US
   name             = module.naming.eventgrid_topic.name_unique
   parent_id        = azurerm_resource_group.topic_rg.id
-  enable_telemetry = false
+  enable_telemetry = var.enable_telemetry
   # Private endpoint in a DIFFERENT region than the Event Grid Topic
   # The `location` parameter tells the module where to create the private endpoint
   private_endpoints = {
@@ -151,7 +151,17 @@ No required inputs.
 
 ## Optional Inputs
 
-No optional inputs.
+The following input variables are optional (have default values):
+
+### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
+
+Description: This variable controls whether or not telemetry is enabled for the module.  
+For more information see <https://aka.ms/avm/telemetryinfo>.  
+If it is set to false, then no telemetry will be collected.
+
+Type: `bool`
+
+Default: `false`
 
 ## Outputs
 
