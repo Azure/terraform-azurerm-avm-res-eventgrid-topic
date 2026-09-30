@@ -749,7 +749,7 @@ The following Modules are called:
 
 Source: Azure/avm-utl-interfaces/azure
 
-Version: 0.5.0
+Version: 0.7.0
 
 ### <a name="module_event_subscriptions"></a> [event\_subscriptions](#module\_event\_subscriptions)
 
