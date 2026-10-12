@@ -1,20 +1,18 @@
 locals {
+  private_endpoint_parent_ids = {
+    for k, v in var.private_endpoints : k => v.resource_group_name == null ? var.parent_id : (
+      can(provider::azapi::parse_resource_id("Microsoft.Resources/resourceGroups", v.resource_group_name)) ? v.resource_group_name :
+      "/subscriptions/${provider::azapi::parse_resource_id("Microsoft.Resources/resourceGroups", var.parent_id).subscription_id}/resourceGroups/${v.resource_group_name}"
+    )
+  }
   private_endpoints = {
-    for k, v in var.private_endpoints : k => {
-      name                                    = v.name
-      role_assignments                        = v.role_assignments
-      lock                                    = v.lock
-      tags                                    = v.tags
-      subnet_resource_id                      = v.subnet_resource_id
-      private_dns_zone_group_name             = v.private_dns_zone_group_name
-      private_dns_zone_resource_ids           = v.private_dns_zone_resource_ids
-      application_security_group_associations = v.application_security_group_associations
-      private_service_connection_name         = v.private_service_connection_name
-      network_interface_name                  = coalesce(v.network_interface_name, "nic-${coalesce(v.name, "pe-${var.name}-${k}")}")
-      location                                = v.location
-      resource_group_name                     = v.resource_group_name
-      ip_configurations                       = v.ip_configurations
-      subresource_names                       = ["topic"]
-    }
+    for k, v in var.private_endpoints : k => merge(v, {
+      lock = v.lock == null ? (var.lock == null ? null : {
+        kind  = var.lock.kind
+        name  = var.lock.name
+        notes = null
+      }) : (v.lock.kind == "None" ? null : v.lock)
+      network_interface_name = coalesce(v.network_interface_name, "nic-${coalesce(v.name, "pe-${var.name}-${k}")}")
+    })
   }
 }

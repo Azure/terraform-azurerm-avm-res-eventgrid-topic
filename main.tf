@@ -3,12 +3,14 @@ resource "azapi_resource" "this" {
   location  = var.location
   name      = var.name
   parent_id = var.parent_id
-  type      = "Microsoft.EventGrid/topics@2025-02-15"
+  type      = var.resource_types.eventgrid_topics
   body = {
     properties = local.topic_properties
   }
+  ignore_body_changes    = length(var.ignore_body_changes.eventgrid_topics) > 0 ? var.ignore_body_changes.eventgrid_topics : null
   ignore_null_property   = true
   response_export_values = ["identity"]
+  retry                  = var.retry
   tags                   = var.tags
 
   dynamic "identity" {
@@ -17,6 +19,16 @@ resource "azapi_resource" "this" {
     content {
       type         = local.identity_type_str
       identity_ids = length(local.user_assigned_id_map) > 0 ? keys(local.user_assigned_id_map) : null
+    }
+  }
+
+  dynamic "timeouts" {
+    for_each = var.timeouts == null ? [] : [var.timeouts]
+    content {
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
     }
   }
 }
