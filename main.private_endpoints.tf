@@ -19,7 +19,10 @@ resource "azapi_resource" "private_endpoint_locks" {
   type      = var.resource_types.authorization_locks
   body = {
     properties = merge(
-      each.value.body.properties,
+      {
+        for property, value in each.value.body.properties : property => value
+        if property != "notes"
+      },
       local.private_endpoints[each.key].lock.notes == null ? {} : {
         notes = local.private_endpoints[each.key].lock.notes
       }
