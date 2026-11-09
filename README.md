@@ -12,7 +12,15 @@ Previously ignored inputs are now honored. An existing endpoint will be replaced
 
 Private endpoint role assignments, locks and DNS zone groups are created when configured. DNS zone groups require at least one zone ID and `private_endpoints_manage_dns_zone_group = true`. A private endpoint inherits the topic's lock unless it has its own lock configuration; `lock = { kind = "None" }` opts out.
 
+Omitted or null private endpoint lock notes are not sent to Azure. Explicit notes, including an empty string, are preserved.
+
 Private endpoint role assignments use AzAPI, which does not perform a client-side Microsoft Entra service-principal check. The existing `skip_service_principal_aad_check` field is retained for compatibility but does not change this behavior; use `principal_type` to specify the principal type sent to Azure.
+
+## Telemetry
+
+Telemetry uses empty subscription deployments instead of the ModTM provider. When enabled, the deployment identity needs `Microsoft.Resources/deployments/read`, `Microsoft.Resources/deployments/write` and `Microsoft.Resources/deployments/delete` at subscription scope. Set `enable_telemetry = false` to disable telemetry throughout the module.
+
+The `event_subscription` submodule now requires `location` when called directly with telemetry enabled. The parent module supplies its location and telemetry setting automatically. Existing ModTM and telemetry UUID state is forgotten without destroying the managed Event Grid resources.
 
 <!-- markdownlint-disable MD033 -->
 ## Requirements
@@ -25,8 +33,6 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) (~> 4.0)
 
-- <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
-
 - <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
 
 ## Resources
@@ -37,15 +43,14 @@ The following resources are used by this module:
 - [azapi_resource.private_endpoint_locks](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.private_endpoint_role_assignments](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.private_endpoints](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
+- [azapi_resource.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.this](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azurerm_management_lock.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/management_lock) (resource)
 - [azurerm_monitor_diagnostic_setting.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) (resource)
 - [azurerm_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) (resource)
-- [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
 - [random_uuid.private_endpoint_role_assignments](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
-- [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
+- [terraform_data.telemetry](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) (resource)
 - [azapi_client_config.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
-- [modtm_module_source.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/data-sources/module_source) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -871,7 +876,7 @@ The following Modules are called:
 
 Source: Azure/avm-utl-interfaces/azure
 
-Version: 0.5.0
+Version: 0.9.0
 
 ### <a name="module_event_subscriptions"></a> [event\_subscriptions](#module\_event\_subscriptions)
 

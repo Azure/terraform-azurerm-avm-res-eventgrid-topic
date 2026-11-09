@@ -11,9 +11,11 @@ module "event_subscriptions" {
   delivery_with_resource_identity    = each.value.delivery_with_resource_identity
   # Pass through all configuration
   destination           = each.value.destination
+  enable_telemetry      = var.enable_telemetry
   event_delivery_schema = each.value.event_delivery_schema
   expiration_time_utc   = each.value.expiration_time_utc
   filter                = each.value.filter
   labels                = each.value.labels
+  location              = var.location
   retry_policy          = each.value.retry_policy
 }

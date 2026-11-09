@@ -2,6 +2,8 @@
 
 This submodule creates an Event Grid event subscription on an Event Grid Topic.
 
+With telemetry enabled, supply `location` and grant the deployment identity `Microsoft.Resources/deployments/read`, `Microsoft.Resources/deployments/write` and `Microsoft.Resources/deployments/delete` at subscription scope. Set `enable_telemetry = false` to disable telemetry and omit the telemetry-only location.
+
 ## Purpose
 
 This submodule can be used independently to create event subscriptions on:
@@ -24,6 +26,7 @@ module "my_subscription" {
   source = "Azure/avm-res-eventgrid-topic/azurerm//modules/event_subscription"
 
   name                         = "my-subscription"
+  location                     = "eastus2"
   event_grid_topic_resource_id = "/subscriptions/.../resourceGroups/.../providers/Microsoft.EventGrid/topics/existing-topic"
 
   destination = {
@@ -47,6 +50,7 @@ module "my_subscription" {
   source = "Azure/avm-res-eventgrid-topic/azurerm//modules/event_subscription"
 
   name                         = "my-subscription"
+  location                     = "eastus2"
   event_grid_topic_resource_id = module.eventgrid_topic.resource_id
 
   delivery_with_resource_identity = {

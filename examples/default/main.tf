@@ -33,8 +33,9 @@ provider "azurerm" {
 # This allows us to randomize the region for the resource group.
 module "regions" {
   source  = "Azure/avm-utl-regions/azurerm"
-  version = "0.9.0"
+  version = "0.13.0"
 
+  location               = var.location
   enable_telemetry       = var.enable_telemetry
   geography_filter       = "United States"
   has_availability_zones = true
@@ -50,8 +51,8 @@ resource "random_integer" "region_index" {
 
 # This ensures we have unique CAF compliant names for our resources.
 module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = "0.4.2"
+  source  = "Azure/avm-utl-naming/azure"
+  version = "0.2.0"
 }
 
 # Resource group for the example
@@ -173,10 +174,12 @@ module "event_subscription_external" {
       }
     }
   }
+  enable_telemetry      = var.enable_telemetry
   event_delivery_schema = "EventGridSchema"
   filter = {
     is_subject_case_sensitive = false
   }
+  location = var.location
   retry_policy = {
     max_delivery_attempts         = 30
     event_time_to_live_in_minutes = 1440

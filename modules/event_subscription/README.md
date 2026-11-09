@@ -4,6 +4,8 @@
 
 This submodule creates an Event Grid event subscription on an Event Grid Topic.
 
+With telemetry enabled, supply `location` and grant the deployment identity `Microsoft.Resources/deployments/read`, `Microsoft.Resources/deployments/write` and `Microsoft.Resources/deployments/delete` at subscription scope. Set `enable_telemetry = false` to disable telemetry and omit the telemetry-only location.
+
 ## Purpose
 
 This submodule can be used independently to create event subscriptions on:
@@ -26,6 +28,7 @@ module "my_subscription" {
   source = "Azure/avm-res-eventgrid-topic/azurerm//modules/event_subscription"
 
   name                         = "my-subscription"
+  location                     = "eastus2"
   event_grid_topic_resource_id = "/subscriptions/.../resourceGroups/.../providers/Microsoft.EventGrid/topics/existing-topic"
 
   destination = {
@@ -49,6 +52,7 @@ module "my_subscription" {
   source = "Azure/avm-res-eventgrid-topic/azurerm//modules/event_subscription"
 
   name                         = "my-subscription"
+  location                     = "eastus2"
   event_grid_topic_resource_id = module.eventgrid_topic.resource_id
 
   delivery_with_resource_identity = {
@@ -81,7 +85,10 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azapi_resource.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.this](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
+- [terraform_data.telemetry](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) (resource)
+- [azapi_client_config.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -381,6 +388,16 @@ object({
 
 Default: `null`
 
+### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
+
+Description: This variable controls whether or not telemetry is enabled for the module.  
+For more information see <https://aka.ms/avm/telemetryinfo>.  
+If it is set to false, then no telemetry will be collected.
+
+Type: `bool`
+
+Default: `true`
+
 ### <a name="input_event_delivery_schema"></a> [event\_delivery\_schema](#input\_event\_delivery\_schema)
 
 Description: The schema for delivered events. Possible values:
@@ -440,6 +457,14 @@ Default: `null`
 Description: A list of labels to apply to the event subscription.
 
 Type: `list(string)`
+
+Default: `null`
+
+### <a name="input_location"></a> [location](#input\_location)
+
+Description: The Azure region for this module's resources or telemetry deployment.
+
+Type: `string`
 
 Default: `null`
 

@@ -17,10 +17,15 @@ mock_provider "azapi" {
       }
     }
   }
+  mock_data "azapi_client_config" {
+    defaults = {
+      subscription_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000"
+    }
+  }
 }
 
 mock_provider "azurerm" {}
-mock_provider "modtm" {}
+
 mock_provider "random" {
   mock_resource "random_uuid" {
     defaults = {
@@ -511,6 +516,31 @@ run "endpoint_lock_defaults_its_name_and_omits_null_notes" {
       !contains(keys(azapi_resource.private_endpoint_locks["test"].body.properties), "notes")
     )
     error_message = "An unnamed lock must get a usable name, and null notes must not be sent."
+  }
+}
+
+run "endpoint_lock_preserves_explicit_empty_notes" {
+  command = apply
+
+  variables {
+    private_endpoints = {
+      test = {
+        name               = "test-pe"
+        subnet_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/test-subnet"
+        lock = {
+          kind  = "ReadOnly"
+          notes = ""
+        }
+      }
+    }
+  }
+
+  assert {
+    condition = (
+      azapi_resource.private_endpoint_locks["test"].body.properties.level == "ReadOnly" &&
+      azapi_resource.private_endpoint_locks["test"].body.properties.notes == ""
+    )
+    error_message = "Explicit empty lock notes must be preserved rather than treated as omitted."
   }
 }
 
