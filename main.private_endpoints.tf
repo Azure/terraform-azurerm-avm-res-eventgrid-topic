@@ -1,7 +1,8 @@
 module "avm_interfaces" {
   source  = "Azure/avm-utl-interfaces/azure"
-  version = "0.5.0"
+  version = "0.9.0"
 
+  location                                = var.location
   enable_telemetry                        = var.enable_telemetry
   lock                                    = var.lock
   private_endpoints                       = local.private_endpoints
@@ -19,7 +20,10 @@ resource "azapi_resource" "private_endpoint_locks" {
   type      = var.resource_types.authorization_locks
   body = {
     properties = merge(
-      each.value.body.properties,
+      {
+        for property, value in each.value.body.properties : property => value
+        if property != "notes" || value != null
+      },
       local.private_endpoints[each.key].lock.notes == null ? {} : {
         notes = local.private_endpoints[each.key].lock.notes
       }

@@ -10,4 +10,12 @@ Previously ignored inputs are now honored. An existing endpoint will be replaced
 
 Private endpoint role assignments, locks and DNS zone groups are created when configured. DNS zone groups require at least one zone ID and `private_endpoints_manage_dns_zone_group = true`. A private endpoint inherits the topic's lock unless it has its own lock configuration; `lock = { kind = "None" }` opts out.
 
+Omitted or null private endpoint lock notes are not sent to Azure. Explicit notes, including an empty string, are preserved.
+
 Private endpoint role assignments use AzAPI, which does not perform a client-side Microsoft Entra service-principal check. The existing `skip_service_principal_aad_check` field is retained for compatibility but does not change this behavior; use `principal_type` to specify the principal type sent to Azure.
+
+## Telemetry
+
+Telemetry uses empty subscription deployments instead of the ModTM provider. When enabled, the deployment identity needs `Microsoft.Resources/deployments/read`, `Microsoft.Resources/deployments/write` and `Microsoft.Resources/deployments/delete` at subscription scope. Set `enable_telemetry = false` to disable telemetry throughout the module.
+
+The `event_subscription` submodule now requires `location` when called directly with telemetry enabled. The parent module supplies its location and telemetry setting automatically. Existing ModTM and telemetry UUID state is forgotten without destroying the managed Event Grid resources.
